@@ -11,16 +11,15 @@
         body { 
             font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; 
             margin: 0; 
-            background-color: #001529; /* Dunkelblau/Schwarz aus dem Screenshot */
+            background-color: #001529; 
             display: flex; 
             flex-direction: column; 
             height: 100vh; 
             color: #fff;
         }
 
-        /* Der beige Header */
         #header { 
-            background-color: #fdf0c2; /* Beige Ton */
+            background-color: #fdf0c2; 
             color: #001529; 
             padding: 12px 20px; 
             font-size: 22px; 
@@ -32,12 +31,11 @@
 
         #header::before {
             content: "●";
-            color: #ff7043; /* Der orangene Punkt */
+            color: #ff7043; 
             margin-right: 10px;
             font-size: 24px;
         }
 
-        /* Chat Bereich */
         #chat { 
             flex: 1; 
             overflow-y: auto; 
@@ -52,12 +50,11 @@
             padding: 10px 15px; 
             border-radius: 10px; 
             max-width: 85%; 
-            border-left: 4px solid #ff7043; /* Akzentfarbe */
+            border-left: 4px solid #ff7043; 
             font-size: 15px;
             line-height: 1.4;
         }
 
-        /* Eingabebereich */
         #input-area { 
             background: #001529; 
             padding: 15px; 
@@ -73,17 +70,17 @@
             padding: 12px 15px; 
             border-radius: 5px; 
             font-size: 14px;
+            color: #333;
         }
 
         button { 
-            background: #1d2d44; /* Dunkler Button-Style */
+            background: #1d2d44; 
             color: #fff; 
             border: 1px solid #445566;
             padding: 10px 25px; 
             border-radius: 20px; 
             cursor: pointer; 
             font-weight: bold;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.3);
         }
 
         button:hover {
@@ -104,20 +101,22 @@
 </div>
 
 <script>
-    // DEINE FIREBASE DATEN HIER WIEDER EINSETZEN
+    // Deine persönlichen Firebase Daten
     const firebaseConfig = {
-        apiKey: "DEIN_KEY",
-        authDomain: "DEIN_PROJEKT.firebaseapp.com",
-        databaseURL: "https://DEIN_PROJEKT.firebaseio.com",
-        projectId: "DEIN_PROJEKT",
-        storageBucket: "DEIN_PROJEKT.appspot.com",
-        messagingSenderId: "...",
-        appId: "..."
+        apiKey: "AIzaSyCq3ryTxKbb3WGi06jH8EWAy6avUNw4Nuc",
+        authDomain: "meinwebchat.firebaseapp.com",
+        databaseURL: "https://meinwebchat-default-rtdb.europe-west1.firebasedatabase.app/",
+        projectId: "meinwebchat",
+        storageBucket: "meinwebchat.firebasestorage.app",
+        messagingSenderId: "1026092671512",
+        appId: "1:1026092671512:web:1b38e71d21be7d3983196d"
     };
     
+    // Firebase initialisieren
     firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
 
+    // Nachricht senden
     function send() {
         const input = document.getElementById('userMsg');
         if (input.value.trim() !== "") {
@@ -129,6 +128,7 @@
         }
     }
 
+    // Nachrichten empfangen
     db.ref("messages").limitToLast(20).on("child_added", (snapshot) => {
         const data = snapshot.val();
         const chat = document.getElementById('chat');
@@ -136,7 +136,7 @@
         div.className = 'msg';
         div.textContent = data.text;
         chat.appendChild(div);
-        chat.scrollTop = chat.scrollHeight;
+        chat.scrollTop = chat.scrollHeight; // Auto-Scroll nach unten
     });
 </script>
 </body>
