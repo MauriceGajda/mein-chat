@@ -2,12 +2,14 @@
 <html lang="de">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Chat</title>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
     
     <style>
+        * { box-sizing: border-box; } /* Wichtig, damit Padding die 100% Breite nicht sprengt */
+
         body { 
             font-family: Arial, sans-serif; 
             margin: 0; 
@@ -16,24 +18,26 @@
             flex-direction: column; 
             color: #fff;
             font-size: 16px;
+            width: 100%; /* Immer volle Breite */
+            overflow: hidden; 
         }
 
-        /* Chat-Fenster begrenzt auf ca. 5 Zeilen */
         #chat { 
             height: 180px; 
-            overflow-y: scroll; 
+            overflow-y: auto; 
             padding: 10px; 
             display: flex; 
             flex-direction: column; 
             gap: 8px;
             background-color: #001529;
+            width: 100%;
+            /* Verbessertes Scrollen für mobile Geräte */
+            -webkit-overflow-scrolling: touch; 
         }
 
-        /* Scrollbar Styling */
-        #chat::-webkit-scrollbar { width: 8px; }
+        #chat::-webkit-scrollbar { width: 6px; }
         #chat::-webkit-scrollbar-thumb { background: #ff4500; }
 
-        /* Animation für das Auffaden */
         @keyframes fadeIn {
             from { opacity: 0; transform: translateY(5px); }
             to { opacity: 1; transform: translateY(0); }
@@ -42,55 +46,64 @@
         .msg { 
             background: rgba(255, 255, 255, 0.1); 
             padding: 8px 12px; 
-            /* Richtiges Orange für den Balken */
             border-left: 5px solid #ff4500; 
             font-size: 16px;
             border-radius: 0; 
             word-wrap: break-word;
-            animation: fadeIn 0.5s ease-out forwards;
+            animation: fadeIn 0.4s ease-out forwards;
+            width: 100%; 
         }
 
         .msg b { color: #fdf0c2; display: block; font-size: 16px; margin-bottom: 2px; }
 
-        /* Eingabebereich Beige */
         #input-area { 
             background-color: #fdf0c2; 
-            padding: 15px; 
+            padding: 12px; 
             display: flex; 
             flex-direction: column;
-            gap: 10px;
+            gap: 8px;
             border-radius: 0;
+            width: 100%;
         }
 
-        .input-row { display: flex; gap: 5px; }
+        .input-row { 
+            display: flex; 
+            gap: 5px; 
+            width: 100%;
+        }
 
         input { 
             background: #fff; 
             border: 1px solid #ccc; 
             padding: 10px; 
             font-size: 16px;
-            /* Schrift in Eingabe ist fett */
             font-weight: bold; 
             color: #333;
             border-radius: 0;
             outline: none;
+            /* Verhindert iOS Standard-Schatten */
+            -webkit-appearance: none; 
         }
 
-        #userName { width: 100px; }
-        #userMsg { flex: 1; }
+        #userName { width: 80px; flex-shrink: 0; }
+        #userMsg { flex: 1; min-width: 0; } /* min-width 0 verhindert, dass Flexbox das Layout sprengt */
 
         button { 
             background: #001529; 
             color: #fff; 
             border: none;
-            padding: 10px 20px; 
+            padding: 10px 15px; 
             cursor: pointer; 
             font-weight: bold;
             font-size: 16px;
             border-radius: 0;
+            flex-shrink: 0;
         }
 
-        button:hover { background: #ff4500; }
+        @media (max-width: 480px) {
+            #userName { width: 70px; }
+            #input-area { padding: 8px; }
+        }
     </style>
 </head>
 <body>
