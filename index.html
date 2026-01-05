@@ -8,8 +8,10 @@
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
     
     <style>
+        /* Globaler Reset für absolut kantiges Design */
         * { box-sizing: border-box; border-radius: 0 !important; }
         html, body { height: 100%; margin: 0; padding: 0; }
+
         body { 
             font-family: Arial, sans-serif; 
             background-color: #001529; 
@@ -20,6 +22,8 @@
             width: 100%;
             overflow: hidden; 
         }
+
+        /* Flexibler Chat-Bereich */
         #chat { 
             flex: 1; 
             overflow-y: auto; 
@@ -33,10 +37,14 @@
             scrollbar-color: #fdf0c2 #001529;
             scrollbar-width: thin;
         }
+
+        /* Scrollbar Styling (Beige wie Eingabemaske) */
         #chat::-webkit-scrollbar { width: 8px; }
         #chat::-webkit-scrollbar-track { background: #001529; }
         #chat::-webkit-scrollbar-thumb { background: #fdf0c2; }
+
         @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+
         .msg { 
             background: rgba(255, 255, 255, 0.1); 
             padding: 8px 10px; 
@@ -46,7 +54,10 @@
             animation: fadeIn 0.4s ease-out forwards;
             width: 100%; 
         }
+
         .msg b { color: #fdf0c2; display: block; font-size: 13px; margin-bottom: 2px; }
+
+        /* Beige Eingabemaske ohne Rahmen */
         #input-area { 
             background-color: #fdf0c2; 
             padding: 10px; 
@@ -56,7 +67,9 @@
             width: 100%;
             flex-shrink: 0;
         }
+
         .input-row { display: flex; gap: 5px; width: 100%; }
+
         input { 
             background: #fff; 
             border: none; 
@@ -67,9 +80,13 @@
             outline: none;
             -webkit-appearance: none; 
         }
+
         #userName { width: 80px; flex-shrink: 0; }
         #userMsg { flex: 1; min-width: 0; }
+
+        /* Honeypot Feld gegen Bots */
         .hp-field { display: none !important; }
+
         button { 
             background: #001529; 
             color: #fff; 
@@ -79,8 +96,11 @@
             font-weight: bold;
             font-size: 14px; 
             flex-shrink: 0;
+            transition: opacity 0.2s;
         }
+
         button:hover { background: #ff4500; }
+
         @media (max-width: 480px) { #userName { width: 70px; } }
     </style>
 </head>
@@ -113,7 +133,7 @@
 
     let isLocked = false;
 
-    // --- GEFÜLLTE BLACKLIST ---
+    // Blacklist für blockierte Wörter
     const blacklist = ["arsch", "idiot", "wichser", "schlampe", "hure", "bastard", "depp", "missgeburt", "pisser", "fotze", "nazi", "hitler", "neger", "penis", "vagina", "fick"]; 
 
     function containsBadWords(text) {
@@ -137,8 +157,9 @@
 
         if (nameInput.value.trim() !== "" && msgInput.value.trim() !== "") {
             
+            // Blockiert die Nachricht, wenn Schimpfwörter enthalten sind
             if (containsBadWords(msgInput.value) || containsBadWords(nameInput.value)) {
-                alert("Bitte achte auf deine Wortwahl. Unangemessene Begriffe sind nicht erlaubt.");
+                alert("Deine Nachricht enthält nicht erlaubte Begriffe und wurde blockiert.");
                 msgInput.value = "";
                 return;
             }
