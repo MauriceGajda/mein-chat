@@ -3,13 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Talk2Now! News Chat</title>
+    <title>Chat</title>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
     
     <style>
         body { 
-            font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; 
+            font-family: Arial, sans-serif; 
             margin: 0; 
             background-color: #001529; 
             display: flex; 
@@ -18,90 +18,80 @@
             color: #fff;
         }
 
-        #header { 
-            background-color: #fdf0c2; 
-            color: #001529; 
-            padding: 12px 20px; 
-            font-size: 22px; 
-            font-weight: bold; 
-            display: flex; 
-            align-items: center;
-            border-bottom: 2px solid #e0d0a0;
-        }
-
-        #header::before {
-            content: "●";
-            color: #ff7043; 
-            margin-right: 10px;
-            font-size: 24px;
-        }
-
         #chat { 
             flex: 1; 
             overflow-y: auto; 
-            padding: 15px; 
+            padding: 10px; 
             display: flex; 
             flex-direction: column; 
-            gap: 12px;
+            gap: 5px;
         }
 
         .msg { 
             background: rgba(255, 255, 255, 0.1); 
-            padding: 10px 15px; 
-            border-radius: 10px; 
-            max-width: 85%; 
-            border-left: 4px solid #ff7043; 
-            font-size: 15px;
-            line-height: 1.4;
+            padding: 8px 12px; 
+            border-left: 3px solid #ff7043; 
+            font-size: 14px;
+            /* Keine runden Ecken */
+            border-radius: 0; 
         }
 
+        .msg b { color: #fdf0c2; display: block; font-size: 12px; margin-bottom: 2px; }
+
+        /* Eingabebereich mit der Farbe der alten Headline */
         #input-area { 
-            background: #001529; 
+            background-color: #fdf0c2; 
             padding: 15px; 
             display: flex; 
-            gap: 10px; 
-            border-top: 1px solid rgba(255,255,255,0.2);
+            flex-direction: column;
+            gap: 10px;
+            /* Keine runden Ecken */
+            border-radius: 0;
         }
+
+        .input-row { display: flex; gap: 5px; }
 
         input { 
-            flex: 1; 
             background: #fff; 
-            border: none; 
-            padding: 12px 15px; 
-            border-radius: 5px; 
+            border: 1px solid #ccc; 
+            padding: 10px; 
             font-size: 14px;
             color: #333;
+            /* Keine runden Ecken */
+            border-radius: 0;
+            outline: none;
         }
+
+        #userName { width: 100px; font-weight: bold; }
+        #userMsg { flex: 1; }
 
         button { 
-            background: #1d2d44; 
+            background: #001529; 
             color: #fff; 
-            border: 1px solid #445566;
-            padding: 10px 25px; 
-            border-radius: 20px; 
+            border: none;
+            padding: 10px 20px; 
             cursor: pointer; 
             font-weight: bold;
+            /* Keine runden Ecken */
+            border-radius: 0;
         }
 
-        button:hover {
-            background: #ff7043;
-            border-color: #ff7043;
-        }
+        button:hover { background: #ff7043; }
     </style>
 </head>
 <body>
 
-<div id="header">Talk2Now! News</div>
-
 <div id="chat"></div>
 
 <div id="input-area">
-    <input type="text" id="userMsg" placeholder="Deine Nachricht..." onkeypress="if(event.key === 'Enter') send()">
-    <button onclick="send()">Senden</button>
+    <div class="input-row">
+        <input type="text" id="userName" placeholder="Name">
+        <input type="text" id="userMsg" placeholder="Nachricht..." onkeypress="if(event.key === 'Enter') send()">
+        <button onclick="send()">Senden</button>
+    </div>
 </div>
 
 <script>
-    // Deine persönlichen Firebase Daten
     const firebaseConfig = {
         apiKey: "AIzaSyCq3ryTxKbb3WGi06jH8EWAy6avUNw4Nuc",
         authDomain: "meinwebchat.firebaseapp.com",
@@ -112,31 +102,33 @@
         appId: "1:1026092671512:web:1b38e71d21be7d3983196d"
     };
     
-    // Firebase initialisieren
     firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
 
-    // Nachricht senden
     function send() {
-        const input = document.getElementById('userMsg');
-        if (input.value.trim() !== "") {
+        const nameInput = document.getElementById('userName');
+        const msgInput = document.getElementById('userMsg');
+        
+        if (nameInput.value.trim() !== "" && msgInput.value.trim() !== "") {
             db.ref("messages").push().set({
-                text: input.value,
+                name: nameInput.value,
+                text: msgInput.value,
                 time: Date.now()
             });
-            input.value = "";
+            msgInput.value = "";
+        } else {
+            alert("Bitte Name und Nachricht eingeben!");
         }
     }
 
-    // Nachrichten empfangen
     db.ref("messages").limitToLast(20).on("child_added", (snapshot) => {
         const data = snapshot.val();
         const chat = document.getElementById('chat');
         const div = document.createElement('div');
         div.className = 'msg';
-        div.textContent = data.text;
+        div.innerHTML = `<b>${data.name}</b>${data.text}`;
         chat.appendChild(div);
-        chat.scrollTop = chat.scrollHeight; // Auto-Scroll nach unten
+        chat.scrollTop = chat.scrollHeight;
     });
 </script>
 </body>
