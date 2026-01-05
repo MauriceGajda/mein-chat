@@ -8,7 +8,10 @@
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
     
     <style>
-        * { box-sizing: border-box; }
+        * { 
+            box-sizing: border-box; 
+            border-radius: 0 !important; 
+        }
 
         body { 
             font-family: Arial, sans-serif; 
@@ -32,18 +35,13 @@
             background-color: #001529;
             width: 100%;
             -webkit-overflow-scrolling: touch; 
-            /* Für Firefox */
             scrollbar-color: #fdf0c2 #001529;
             scrollbar-width: thin;
         }
 
-        /* Scrollbar Styling für Chrome, Safari, Edge */
-        #chat::-webkit-scrollbar { width: 6px; }
+        #chat::-webkit-scrollbar { width: 8px; }
         #chat::-webkit-scrollbar-track { background: #001529; }
-        #chat::-webkit-scrollbar-thumb { 
-            background: #fdf0c2; /* Gleiche Farbe wie Eingabemaske */
-            border-radius: 0; 
-        }
+        #chat::-webkit-scrollbar-thumb { background: #fdf0c2; }
 
         @keyframes fadeIn {
             from { opacity: 0; transform: translateY(5px); }
@@ -55,7 +53,6 @@
             padding: 8px 12px; 
             border-left: 5px solid #ff4500; 
             font-size: 16px;
-            border-radius: 0; 
             word-wrap: break-word;
             animation: fadeIn 0.4s ease-out forwards;
             width: 100%; 
@@ -69,7 +66,6 @@
             display: flex; 
             flex-direction: column;
             gap: 8px;
-            border-radius: 0;
             width: 100%;
         }
 
@@ -81,12 +77,11 @@
 
         input { 
             background: #fff; 
-            border: 1px solid #ccc; 
+            border: none; /* Schwarze Linie entfernt */
             padding: 10px; 
             font-size: 16px;
             font-weight: bold; 
             color: #333;
-            border-radius: 0;
             outline: none;
             -webkit-appearance: none; 
         }
@@ -102,7 +97,6 @@
             cursor: pointer; 
             font-weight: bold;
             font-size: 16px;
-            border-radius: 0;
             flex-shrink: 0;
         }
 
@@ -110,7 +104,6 @@
 
         @media (max-width: 480px) {
             #userName { width: 70px; }
-            #input-area { padding: 8px; }
         }
     </style>
 </head>
