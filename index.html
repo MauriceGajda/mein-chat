@@ -14,38 +14,51 @@
             background-color: #001529; 
             display: flex; 
             flex-direction: column; 
-            height: 100vh; 
             color: #fff;
+            font-size: 16px;
         }
 
+        /* Chat-Fenster begrenzt auf ca. 5 Zeilen */
         #chat { 
-            flex: 1; 
-            overflow-y: auto; 
+            height: 180px; 
+            overflow-y: scroll; 
             padding: 10px; 
             display: flex; 
             flex-direction: column; 
-            gap: 5px;
+            gap: 8px;
+            background-color: #001529;
+        }
+
+        /* Scrollbar Styling */
+        #chat::-webkit-scrollbar { width: 8px; }
+        #chat::-webkit-scrollbar-thumb { background: #ff4500; }
+
+        /* Animation für das Auffaden */
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(5px); }
+            to { opacity: 1; transform: translateY(0); }
         }
 
         .msg { 
             background: rgba(255, 255, 255, 0.1); 
             padding: 8px 12px; 
-            border-left: 3px solid #ff7043; 
-            font-size: 14px;
-            /* Keine runden Ecken */
+            /* Richtiges Orange für den Balken */
+            border-left: 5px solid #ff4500; 
+            font-size: 16px;
             border-radius: 0; 
+            word-wrap: break-word;
+            animation: fadeIn 0.5s ease-out forwards;
         }
 
-        .msg b { color: #fdf0c2; display: block; font-size: 12px; margin-bottom: 2px; }
+        .msg b { color: #fdf0c2; display: block; font-size: 16px; margin-bottom: 2px; }
 
-        /* Eingabebereich mit der Farbe der alten Headline */
+        /* Eingabebereich Beige */
         #input-area { 
             background-color: #fdf0c2; 
             padding: 15px; 
             display: flex; 
             flex-direction: column;
             gap: 10px;
-            /* Keine runden Ecken */
             border-radius: 0;
         }
 
@@ -55,14 +68,15 @@
             background: #fff; 
             border: 1px solid #ccc; 
             padding: 10px; 
-            font-size: 14px;
+            font-size: 16px;
+            /* Schrift in Eingabe ist fett */
+            font-weight: bold; 
             color: #333;
-            /* Keine runden Ecken */
             border-radius: 0;
             outline: none;
         }
 
-        #userName { width: 100px; font-weight: bold; }
+        #userName { width: 100px; }
         #userMsg { flex: 1; }
 
         button { 
@@ -72,11 +86,11 @@
             padding: 10px 20px; 
             cursor: pointer; 
             font-weight: bold;
-            /* Keine runden Ecken */
+            font-size: 16px;
             border-radius: 0;
         }
 
-        button:hover { background: #ff7043; }
+        button:hover { background: #ff4500; }
     </style>
 </head>
 <body>
@@ -116,12 +130,10 @@
                 time: Date.now()
             });
             msgInput.value = "";
-        } else {
-            alert("Bitte Name und Nachricht eingeben!");
         }
     }
 
-    db.ref("messages").limitToLast(20).on("child_added", (snapshot) => {
+    db.ref("messages").limitToLast(50).on("child_added", (snapshot) => {
         const data = snapshot.val();
         const chat = document.getElementById('chat');
         const div = document.createElement('div');
