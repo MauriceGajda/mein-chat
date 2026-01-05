@@ -14,19 +14,18 @@
             font-family: Arial, sans-serif; 
             margin: 0; 
             padding: 0; 
-            background-color: transparent; /* Passt sich der Strato-Seite an */
+            background-color: transparent;
             display: flex;
-            justify-content: flex-start;
+            width: 100%;
         }
 
-        /* Der Haupt-Container bleibt IMMER gleich groß */
+        /* Container nutzt die volle Breite der Elternseite */
         #chat-container {
             width: 100%;
-            max-width: 600px; /* Optional: Begrenzung für Desktop */
             background-color: #001529;
             display: flex;
             flex-direction: column;
-            height: 250px; /* Gesamthöhe fest fixiert */
+            height: 250px; /* Gesamthöhe bleibt fix */
         }
 
         #chat { 
@@ -40,19 +39,11 @@
             -webkit-overflow-scrolling: touch; 
             scrollbar-color: #fdf0c2 #001529;
             scrollbar-width: thin;
-            
-            /* Desktop: Chat-Fenster Höhe für ca. 3 Nachrichten */
-            height: 170px; 
+            height: 170px; /* Desktop: ca. 3 Nachrichten */
         }
 
-        /* Mobile: Chat-Fenster wird kleiner für 2 Nachrichten, aber Container bleibt gleich */
         @media (max-width: 600px) {
-            #chat {
-                height: 115px; 
-            }
-            #chat-container {
-                height: 250px; /* Bleibt identisch zum Desktop */
-            }
+            #chat { height: 115px; /* Mobile: ca. 2 Nachrichten */ }
         }
 
         #chat::-webkit-scrollbar { width: 8px; }
@@ -70,9 +61,15 @@
             animation: fadeIn 0.4s ease-out forwards;
             width: 100%; 
             min-height: 48px;
+            color: #fdf0c2; /* Schriftfarbe Nachricht: Beige */
         }
 
-        .msg b { color: #fdf0c2; display: block; font-size: 13px; margin-bottom: 2px; }
+        .msg b { 
+            color: #fdf0c2; /* Schriftfarbe Name: Beige */
+            display: block; 
+            font-size: 13px; 
+            margin-bottom: 2px; 
+        }
 
         #input-area { 
             background-color: #fdf0c2; 
@@ -81,7 +78,7 @@
             flex-direction: column;
             gap: 8px;
             width: 100%;
-            flex-grow: 1; /* Füllt den restlichen Platz im 250px Container auf */
+            flex-grow: 1;
         }
 
         .input-row { display: flex; gap: 5px; width: 100%; }
@@ -121,7 +118,6 @@
 
 <div id="chat-container">
     <div id="chat"></div>
-
     <div id="input-area">
         <div class="input-row">
             <input type="text" id="botCheck" class="hp-field" tabindex="-1" autocomplete="off">
@@ -165,25 +161,20 @@
         const nameInput = document.getElementById('userName');
         const msgInput = document.getElementById('userMsg');
         const sendBtn = document.getElementById('sendBtn');
-
         if (hpValue !== "") return;
-
         if (nameInput.value.trim() !== "" && msgInput.value.trim() !== "") {
             if (containsBadWords(msgInput.value) || containsBadWords(nameInput.value)) {
                 alert("Deine Nachricht wurde aufgrund unzulässiger Begriffe blockiert.");
                 msgInput.value = "";
                 return;
             }
-
             isLocked = true;
             sendBtn.style.opacity = "0.5";
-            
             db.ref("messages").push().set({
                 name: nameInput.value,
                 text: msgInput.value,
                 time: Date.now()
             });
-
             msgInput.value = "";
             setTimeout(() => { isLocked = false; sendBtn.style.opacity = "1"; }, 3000);
         }
