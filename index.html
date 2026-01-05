@@ -113,12 +113,12 @@
 
     let isLocked = false;
 
-    // --- SCHIMPFWORT FILTER ---
-    const blacklist = ["Hure", "wort2", "beleidigung1"]; // Hier deine Liste erweitern
+    // --- GEFÜLLTE BLACKLIST ---
+    const blacklist = ["arsch", "idiot", "wichser", "schlampe", "hure", "bastard", "depp", "missgeburt", "pisser", "fotze", "nazi", "hitler", "neger", "penis", "vagina", "fick"]; 
 
     function containsBadWords(text) {
         const lowerText = text.toLowerCase();
-        return blacklist.some(word => lowerText.includes(word.toLowerCase()));
+        return blacklist.some(word => lowerText.includes(word));
     }
 
     function scrollToBottom() {
@@ -137,9 +137,8 @@
 
         if (nameInput.value.trim() !== "" && msgInput.value.trim() !== "") {
             
-            // Filter Check
             if (containsBadWords(msgInput.value) || containsBadWords(nameInput.value)) {
-                alert("Deine Nachricht enthält nicht erlaubte Begriffe.");
+                alert("Bitte achte auf deine Wortwahl. Unangemessene Begriffe sind nicht erlaubt.");
                 msgInput.value = "";
                 return;
             }
