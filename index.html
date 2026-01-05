@@ -8,24 +8,20 @@
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
     
     <style>
-        /* Globaler Reset für absolut kantiges Design */
         * { box-sizing: border-box; border-radius: 0 !important; }
-        html, body { height: 100%; margin: 0; padding: 0; }
+        html, body { margin: 0; padding: 0; background-color: #001529; }
 
         body { 
             font-family: Arial, sans-serif; 
-            background-color: #001529; 
             display: flex; 
             flex-direction: column; 
             color: #fff;
             font-size: 14px; 
             width: 100%;
-            overflow: hidden; 
         }
 
-        /* Flexibler Chat-Bereich */
+        /* Chat-Bereich mit Begrenzung der sichtbaren Zeilen */
         #chat { 
-            flex: 1; 
             overflow-y: auto; 
             padding: 10px; 
             display: flex; 
@@ -36,9 +32,18 @@
             -webkit-overflow-scrolling: touch; 
             scrollbar-color: #fdf0c2 #001529;
             scrollbar-width: thin;
+            
+            /* Desktop Standard: Begrenzung auf ca. 3 Nachrichten */
+            height: 165px; 
         }
 
-        /* Scrollbar Styling (Beige wie Eingabemaske) */
+        /* Mobile Version: Begrenzung auf ca. 2 Nachrichten */
+        @media (max-width: 600px) {
+            #chat {
+                height: 115px;
+            }
+        }
+
         #chat::-webkit-scrollbar { width: 8px; }
         #chat::-webkit-scrollbar-track { background: #001529; }
         #chat::-webkit-scrollbar-thumb { background: #fdf0c2; }
@@ -53,11 +58,11 @@
             word-wrap: break-word;
             animation: fadeIn 0.4s ease-out forwards;
             width: 100%; 
+            min-height: 45px; /* Stellt sicher, dass die Berechnung der Zeilen stabil bleibt */
         }
 
         .msg b { color: #fdf0c2; display: block; font-size: 13px; margin-bottom: 2px; }
 
-        /* Beige Eingabemaske ohne Rahmen */
         #input-area { 
             background-color: #fdf0c2; 
             padding: 10px; 
@@ -65,7 +70,6 @@
             flex-direction: column;
             gap: 8px;
             width: 100%;
-            flex-shrink: 0;
         }
 
         .input-row { display: flex; gap: 5px; width: 100%; }
@@ -83,8 +87,6 @@
 
         #userName { width: 80px; flex-shrink: 0; }
         #userMsg { flex: 1; min-width: 0; }
-
-        /* Honeypot Feld gegen Bots */
         .hp-field { display: none !important; }
 
         button { 
@@ -96,7 +98,6 @@
             font-weight: bold;
             font-size: 14px; 
             flex-shrink: 0;
-            transition: opacity 0.2s;
         }
 
         button:hover { background: #ff4500; }
@@ -132,8 +133,6 @@
     const db = firebase.database();
 
     let isLocked = false;
-
-    // Blacklist für blockierte Wörter
     const blacklist = ["arsch", "idiot", "wichser", "schlampe", "hure", "bastard", "depp", "missgeburt", "pisser", "fotze", "nazi", "hitler", "neger", "penis", "vagina", "fick"]; 
 
     function containsBadWords(text) {
@@ -156,10 +155,8 @@
         if (hpValue !== "") return;
 
         if (nameInput.value.trim() !== "" && msgInput.value.trim() !== "") {
-            
-            // Blockiert die Nachricht, wenn Schimpfwörter enthalten sind
             if (containsBadWords(msgInput.value) || containsBadWords(nameInput.value)) {
-                alert("Deine Nachricht enthält nicht erlaubte Begriffe und wurde blockiert.");
+                alert("Deine Nachricht wurde aufgrund unzulässiger Begriffe blockiert.");
                 msgInput.value = "";
                 return;
             }
