@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mein Live Chat</title>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+    
+    <style>
+        body { font-family: Arial, sans-serif; display: flex; flex-direction: column; height: 100vh; margin: 0; background: #eee; }
+        #chat { flex: 1; overflow-y: auto; padding: 15px; display: flex; flex-direction: column; }
+        .msg { background: white; padding: 8px 12px; border-radius: 15px; margin-bottom: 8px; max-width: 80%; box-shadow: 0 1px 2px rgba(0,0,0,0.1); }
+        #input-area { padding: 10px; background: white; display: flex; gap: 5px; }
+        input { flex: 1; border: 1px solid #ccc; padding: 8px; border-radius: 5px; }
+        button { background: #007bff; color: white; border: none; padding: 8px 15px; border-radius: 5px; cursor: pointer; }
+    </style>
+</head>
+<body>
+
+<div id="chat"></div>
+<div id="input-area">
+    <input type="text" id="userMsg" placeholder="Nachricht..." onkeypress="if(event.key === 'Enter') send()">
+    <button onclick="send()">Senden</button>
+</div>
+
+<script>
+    // HIER DEINE FIREBASE DATEN EINFÜGEN
+    const firebaseConfig = {
+        apiKey: "DEIN_KEY",
+        authDomain: "DEIN_PROJEKT.firebaseapp.com",
+        databaseURL: "https://DEIN_PROJEKT.firebaseio.com",
+        projectId: "DEIN_PROJEKT",
+        storageBucket: "DEIN_PROJEKT.appspot.com",
+        messagingSenderId: "...",
+        appId: "..."
+    };
+    
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
+
+    function send() {
+        const input = document.getElementById('userMsg');
+        if (input.value.trim() !== "") {
+            db.ref("messages").push().set({
+                text: input.value,
+                time: Date.now()
+            });
+            input.value = "";
+        }
+    }
+
+    // Nachrichten in Echtzeit laden
+    db.ref("messages").limitToLast(20).on("child_added", (snapshot) => {
+        const data = snapshot.val();
+        const chat = document.getElementById('chat');
+        const div = document.createElement('div');
+        div.className = 'msg';
+        div.textContent = data.text;
+        chat.appendChild(div);
+        chat.scrollTop = chat.scrollHeight;
+    });
+</script>
+</body>
+</html>
