@@ -9,18 +9,26 @@
     
     <style>
         * { box-sizing: border-box; border-radius: 0 !important; }
-        html, body { margin: 0; padding: 0; background-color: #001529; }
-
+        
         body { 
             font-family: Arial, sans-serif; 
-            display: flex; 
-            flex-direction: column; 
-            color: #fff;
-            font-size: 14px; 
-            width: 100%;
+            margin: 0; 
+            padding: 0; 
+            background-color: transparent; /* Passt sich der Strato-Seite an */
+            display: flex;
+            justify-content: flex-start;
         }
 
-        /* Chat-Bereich mit Begrenzung der sichtbaren Zeilen */
+        /* Der Haupt-Container bleibt IMMER gleich groß */
+        #chat-container {
+            width: 100%;
+            max-width: 600px; /* Optional: Begrenzung für Desktop */
+            background-color: #001529;
+            display: flex;
+            flex-direction: column;
+            height: 250px; /* Gesamthöhe fest fixiert */
+        }
+
         #chat { 
             overflow-y: auto; 
             padding: 10px; 
@@ -33,14 +41,17 @@
             scrollbar-color: #fdf0c2 #001529;
             scrollbar-width: thin;
             
-            /* Desktop Standard: Begrenzung auf ca. 3 Nachrichten */
-            height: 165px; 
+            /* Desktop: Chat-Fenster Höhe für ca. 3 Nachrichten */
+            height: 170px; 
         }
 
-        /* Mobile Version: Begrenzung auf ca. 2 Nachrichten */
+        /* Mobile: Chat-Fenster wird kleiner für 2 Nachrichten, aber Container bleibt gleich */
         @media (max-width: 600px) {
             #chat {
-                height: 115px;
+                height: 115px; 
+            }
+            #chat-container {
+                height: 250px; /* Bleibt identisch zum Desktop */
             }
         }
 
@@ -58,18 +69,19 @@
             word-wrap: break-word;
             animation: fadeIn 0.4s ease-out forwards;
             width: 100%; 
-            min-height: 45px; /* Stellt sicher, dass die Berechnung der Zeilen stabil bleibt */
+            min-height: 48px;
         }
 
         .msg b { color: #fdf0c2; display: block; font-size: 13px; margin-bottom: 2px; }
 
         #input-area { 
             background-color: #fdf0c2; 
-            padding: 10px; 
+            padding: 12px; 
             display: flex; 
             flex-direction: column;
             gap: 8px;
             width: 100%;
+            flex-grow: 1; /* Füllt den restlichen Platz im 250px Container auf */
         }
 
         .input-row { display: flex; gap: 5px; width: 100%; }
@@ -107,14 +119,16 @@
 </head>
 <body>
 
-<div id="chat"></div>
+<div id="chat-container">
+    <div id="chat"></div>
 
-<div id="input-area">
-    <div class="input-row">
-        <input type="text" id="botCheck" class="hp-field" tabindex="-1" autocomplete="off">
-        <input type="text" id="userName" placeholder="Name">
-        <input type="text" id="userMsg" placeholder="Nachricht..." onkeypress="if(event.key === 'Enter') send()">
-        <button id="sendBtn" onclick="send()">Senden</button>
+    <div id="input-area">
+        <div class="input-row">
+            <input type="text" id="botCheck" class="hp-field" tabindex="-1" autocomplete="off">
+            <input type="text" id="userName" placeholder="Name">
+            <input type="text" id="userMsg" placeholder="Nachricht..." onkeypress="if(event.key === 'Enter') send()">
+            <button id="sendBtn" onclick="send()">Senden</button>
+        </div>
     </div>
 </div>
 
