@@ -4,12 +4,28 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Chat</title>
+    
+    <link href="https://fonts.googleapis.com/css2?family=Istok+Web:wght@400;700&display=swap" rel="stylesheet">
+    
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
     
     <style>
-        * { box-sizing: border-box; border-radius: 0 !important; margin: 0; padding: 0; }
-        html, body { width: 100%; height: 250px; background-color: transparent; overflow: hidden; }
+        /* Globaler Reset & Schrift-Zwang */
+        * { 
+            box-sizing: border-box; 
+            border-radius: 0 !important; 
+            margin: 0; 
+            padding: 0; 
+            font-family: 'Istok Web', sans-serif !important; 
+        }
+        
+        html, body { 
+            width: 100%; 
+            height: 250px; 
+            background-color: transparent; 
+            overflow: hidden;
+        }
 
         #chat-container {
             width: 100%;
@@ -31,11 +47,11 @@
             -webkit-overflow-scrolling: touch; 
             scrollbar-color: #fdf0c2 #001529;
             scrollbar-width: thin;
-            height: 170px; /* Desktop: ca. 3 Nachrichten */
+            height: 170px; 
         }
 
         @media (max-width: 600px) {
-            #chat { height: 135px; /* Mobile: ca. 2 Nachrichten */ }
+            #chat { height: 135px; }
         }
 
         #chat::-webkit-scrollbar { width: 6px; }
@@ -62,7 +78,7 @@
             display: flex; 
             align-items: center;
             width: 100%;
-            flex: 1; /* Füllt den Rest der 250px bündig aus */
+            flex: 1;
         }
 
         .input-row { display: flex; gap: 5px; width: 100%; }
@@ -79,7 +95,7 @@
             -webkit-appearance: none;
         }
 
-        #userName { width: 70px; flex-shrink: 0; }
+        #userName { width: 85px; flex-shrink: 0; }
         #userMsg { flex: 1; min-width: 0; }
         .hp-field { display: none !important; }
 
@@ -105,9 +121,9 @@
     <div id="input-area">
         <div class="input-row">
             <input type="text" id="botCheck" class="hp-field" tabindex="-1" autocomplete="off">
-            <input type="text" id="userName" placeholder="N">
+            <input type="text" id="userName" placeholder="Name">
             <input type="text" id="userMsg" placeholder="Nachricht..." onkeypress="if(event.key === 'Enter') send()">
-            <button id="sendBtn" onclick="send()">OK</button>
+            <button id="sendBtn" onclick="send()">Senden</button>
         </div>
     </div>
 </div>
@@ -148,7 +164,7 @@
         if (hpValue !== "") return;
         if (nameInput.value.trim() !== "" && msgInput.value.trim() !== "") {
             if (containsBadWords(msgInput.value) || containsBadWords(nameInput.value)) {
-                alert("Unzulässige Wortwahl.");
+                alert("Deine Nachricht enthält unzulässige Begriffe.");
                 msgInput.value = "";
                 return;
             }
