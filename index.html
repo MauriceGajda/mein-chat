@@ -8,24 +8,28 @@
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
     
     <style>
-        * { box-sizing: border-box; border-radius: 0 !important; }
-        
-        body { 
-            font-family: Arial, sans-serif; 
+        /* Alles auf Null setzen, um Freiräume zu vermeiden */
+        * { 
+            box-sizing: border-box; 
+            border-radius: 0 !important; 
             margin: 0; 
             padding: 0; 
-            background-color: transparent;
-            display: flex;
-            width: 100%;
+        }
+        
+        html, body { 
+            width: 100%; 
+            background-color: transparent; 
+            overflow: hidden; /* Verhindert Scrollen außerhalb des Chats */
         }
 
-        /* Container nutzt die volle Breite der Elternseite */
+        /* Haupt-Container ohne unteren Freiraum */
         #chat-container {
             width: 100%;
             background-color: #001529;
             display: flex;
             flex-direction: column;
-            height: 250px; /* Gesamthöhe bleibt fix */
+            height: 250px; /* Die gewünschte fixe Höhe */
+            overflow: hidden;
         }
 
         #chat { 
@@ -39,14 +43,15 @@
             -webkit-overflow-scrolling: touch; 
             scrollbar-color: #fdf0c2 #001529;
             scrollbar-width: thin;
-            height: 170px; /* Desktop: ca. 3 Nachrichten */
+            height: 170px; /* Desktop-Anzeige */
         }
 
+        /* Mobile Höhen-Anpassung */
         @media (max-width: 600px) {
-            #chat { height: 115px; /* Mobile: ca. 2 Nachrichten */ }
+            #chat { height: 135px; } /* Etwas höher für 2 klare Nachrichten */
         }
 
-        #chat::-webkit-scrollbar { width: 8px; }
+        #chat::-webkit-scrollbar { width: 6px; }
         #chat::-webkit-scrollbar-track { background: #001529; }
         #chat::-webkit-scrollbar-thumb { background: #fdf0c2; }
 
@@ -60,28 +65,22 @@
             word-wrap: break-word;
             animation: fadeIn 0.4s ease-out forwards;
             width: 100%; 
-            min-height: 48px;
-            color: #fdf0c2; /* Schriftfarbe Nachricht: Beige */
+            color: #fdf0c2; 
         }
 
-        .msg b { 
-            color: #fdf0c2; /* Schriftfarbe Name: Beige */
-            display: block; 
-            font-size: 13px; 
-            margin-bottom: 2px; 
-        }
+        .msg b { color: #fdf0c2; display: block; font-size: 13px; margin-bottom: 2px; }
 
         #input-area { 
             background-color: #fdf0c2; 
-            padding: 12px; 
+            padding: 10px; 
             display: flex; 
             flex-direction: column;
             gap: 8px;
             width: 100%;
-            flex-grow: 1;
+            flex-grow: 1; /* Füllt den Container exakt bis unten aus */
         }
 
-        .input-row { display: flex; gap: 5px; width: 100%; }
+        .input-row { display: flex; gap: 5px; width: 100%; height: 100%; align-items: center; }
 
         input { 
             background: #fff; 
@@ -92,9 +91,10 @@
             color: #333;
             outline: none;
             -webkit-appearance: none; 
+            height: 40px;
         }
 
-        #userName { width: 80px; flex-shrink: 0; }
+        #userName { width: 75px; flex-shrink: 0; }
         #userMsg { flex: 1; min-width: 0; }
         .hp-field { display: none !important; }
 
@@ -102,7 +102,8 @@
             background: #001529; 
             color: #fff; 
             border: none;
-            padding: 10px 15px; 
+            padding: 0 15px; 
+            height: 40px;
             cursor: pointer; 
             font-weight: bold;
             font-size: 14px; 
@@ -111,7 +112,7 @@
 
         button:hover { background: #ff4500; }
 
-        @media (max-width: 480px) { #userName { width: 70px; } }
+        @media (max-width: 480px) { #userName { width: 65px; } }
     </style>
 </head>
 <body>
