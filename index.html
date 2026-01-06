@@ -8,27 +8,15 @@
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
     
     <style>
-        /* Alles auf Null setzen, um Freiräume zu vermeiden */
-        * { 
-            box-sizing: border-box; 
-            border-radius: 0 !important; 
-            margin: 0; 
-            padding: 0; 
-        }
-        
-        html, body { 
-            width: 100%; 
-            background-color: transparent; 
-            overflow: hidden; /* Verhindert Scrollen außerhalb des Chats */
-        }
+        * { box-sizing: border-box; border-radius: 0 !important; margin: 0; padding: 0; }
+        html, body { width: 100%; height: 250px; background-color: transparent; overflow: hidden; }
 
-        /* Haupt-Container ohne unteren Freiraum */
         #chat-container {
             width: 100%;
             background-color: #001529;
             display: flex;
             flex-direction: column;
-            height: 250px; /* Die gewünschte fixe Höhe */
+            height: 250px;
             overflow: hidden;
         }
 
@@ -43,12 +31,11 @@
             -webkit-overflow-scrolling: touch; 
             scrollbar-color: #fdf0c2 #001529;
             scrollbar-width: thin;
-            height: 170px; /* Desktop-Anzeige */
+            height: 170px; /* Desktop: ca. 3 Nachrichten */
         }
 
-        /* Mobile Höhen-Anpassung */
         @media (max-width: 600px) {
-            #chat { height: 135px; } /* Etwas höher für 2 klare Nachrichten */
+            #chat { height: 135px; /* Mobile: ca. 2 Nachrichten */ }
         }
 
         #chat::-webkit-scrollbar { width: 6px; }
@@ -64,7 +51,6 @@
             font-size: 14px; 
             word-wrap: break-word;
             animation: fadeIn 0.4s ease-out forwards;
-            width: 100%; 
             color: #fdf0c2; 
         }
 
@@ -74,13 +60,12 @@
             background-color: #fdf0c2; 
             padding: 10px; 
             display: flex; 
-            flex-direction: column;
-            gap: 8px;
+            align-items: center;
             width: 100%;
-            flex-grow: 1; /* Füllt den Container exakt bis unten aus */
+            flex: 1; /* Füllt den Rest der 250px bündig aus */
         }
 
-        .input-row { display: flex; gap: 5px; width: 100%; height: 100%; align-items: center; }
+        .input-row { display: flex; gap: 5px; width: 100%; }
 
         input { 
             background: #fff; 
@@ -90,11 +75,11 @@
             font-weight: bold; 
             color: #333;
             outline: none;
-            -webkit-appearance: none; 
             height: 40px;
+            -webkit-appearance: none;
         }
 
-        #userName { width: 75px; flex-shrink: 0; }
+        #userName { width: 70px; flex-shrink: 0; }
         #userMsg { flex: 1; min-width: 0; }
         .hp-field { display: none !important; }
 
@@ -111,8 +96,6 @@
         }
 
         button:hover { background: #ff4500; }
-
-        @media (max-width: 480px) { #userName { width: 65px; } }
     </style>
 </head>
 <body>
@@ -122,9 +105,9 @@
     <div id="input-area">
         <div class="input-row">
             <input type="text" id="botCheck" class="hp-field" tabindex="-1" autocomplete="off">
-            <input type="text" id="userName" placeholder="Name">
+            <input type="text" id="userName" placeholder="N">
             <input type="text" id="userMsg" placeholder="Nachricht..." onkeypress="if(event.key === 'Enter') send()">
-            <button id="sendBtn" onclick="send()">Senden</button>
+            <button id="sendBtn" onclick="send()">OK</button>
         </div>
     </div>
 </div>
@@ -165,7 +148,7 @@
         if (hpValue !== "") return;
         if (nameInput.value.trim() !== "" && msgInput.value.trim() !== "") {
             if (containsBadWords(msgInput.value) || containsBadWords(nameInput.value)) {
-                alert("Deine Nachricht wurde aufgrund unzulässiger Begriffe blockiert.");
+                alert("Unzulässige Wortwahl.");
                 msgInput.value = "";
                 return;
             }
