@@ -11,7 +11,7 @@
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
     
     <style>
-        /* 1. Globaler Reset & Flex-Basis */
+        /* 1. Reset und Schrift-Zwang */
         * { 
             box-sizing: border-box; 
             margin: 0; 
@@ -19,7 +19,7 @@
             font-family: 'Istok Web', sans-serif !important; 
         }
         
-        /* WICHTIG: HTML und Body müssen 100% einnehmen, damit der Container weiß, wie hoch er ist */
+        /* 2. Fullscreen-Basis für den iFrame */
         html, body { 
             width: 100%; 
             height: 100%; 
@@ -27,15 +27,19 @@
             overflow: hidden; 
         }
 
+        /* 3. Der Container, der sich an den iFrame krallt */
         #chat-container {
-            width: 100%;
-            height: 100%; /* Zwingt den Container, exakt so hoch wie das Iframe zu sein */
+            position: absolute;
+            top: 0; 
+            left: 0; 
+            right: 0; 
+            bottom: 0;
             display: flex;
             flex-direction: column;
             background-color: #001529;
         }
 
-        /* 2. Chat-Verlauf: Flex 1 füllt den gesamten Raum aus */
+        /* 4. Chat-Verlauf: Füllt den verfügbaren Platz */
         #chat { 
             flex: 1; 
             overflow-y: auto; 
@@ -50,7 +54,7 @@
         .msg { 
             background: rgba(255, 255, 255, 0.1); 
             padding: 8px 10px; 
-            border-left: 5px solid #ffa500; /* Orangefarbener Balken */
+            border-left: 5px solid #ffa500; 
             font-size: 14px; 
             word-wrap: break-word;
             color: #fdf0c2; 
@@ -63,7 +67,7 @@
             margin-bottom: 2px; 
         }
 
-        /* 3. Eingabemaske: Fixierte Höhe am unteren Rand */
+        /* 5. Eingabe-Bereich am unteren Ende */
         #input-area { 
             background-color: #fdf0c2; 
             padding: 10px; 
@@ -139,7 +143,7 @@
     const db = firebase.database();
     let isLocked = false;
 
-    // Filter-Liste
+    // Filter für böse Wörter
     const blacklist = ["arsch", "idiot", "wichser", "schlampe", "hure", "bastard", "depp", "missgeburt", "pisser", "fotze", "nazi", "hitler", "neger", "penis", "vagina", "fick"]; 
 
     function containsBadWords(text) {
@@ -160,7 +164,7 @@
         
         if (nameInput.value.trim() !== "" && msgInput.value.trim() !== "") {
             if (containsBadWords(msgInput.value) || containsBadWords(nameInput.value)) {
-                alert("Unzulässige Begriffe.");
+                alert("Deine Nachricht enthält unzulässige Begriffe.");
                 return;
             }
             isLocked = true;
@@ -175,13 +179,13 @@
         }
     }
 
-    // Live-Update der Nachrichten
+    // Nachrichten in Echtzeit laden
     db.ref("messages").limitToLast(50).on("child_added", (snapshot) => {
         const data = snapshot.val();
         const chat = document.getElementById('chat');
         const div = document.createElement('div');
         div.className = 'msg';
-        div.innerHTML = `<b>${data.name}</b> ${data.text}`; // Leerzeichen integriert
+        div.innerHTML = `<b>${data.name}</b> ${data.text}`;
         chat.appendChild(div);
         setTimeout(scrollToBottom, 50);
     });
