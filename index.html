@@ -4,53 +4,37 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Chat</title>
-    
     <link href="https://fonts.googleapis.com/css2?family=Istok+Web:wght@400;700&display=swap" rel="stylesheet">
-    
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
     
     <style>
-        * { 
-            box-sizing: border-box; 
-            margin: 0; 
-            padding: 0; 
-            font-family: 'Istok Web', sans-serif !important; 
-        }
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Istok Web', sans-serif !important; }
         
+        /* WICHTIG: HTML und Body müssen 100% hoch sein */
         html, body { 
             width: 100%; 
+            height: 100%; 
             background-color: transparent; 
-            /* Kein overflow: hidden mehr, damit der Iframe atmen kann */
+            overflow: hidden; 
         }
 
         #chat-container {
             width: 100%;
+            height: 100%; /* Füllt den iFrame komplett aus */
             background-color: #001529;
             display: flex;
             flex-direction: column;
-            /* Wir legen die Box-Größe hier fest, damit sie im Iframe stabil bleibt */
-            height: 250px; 
-            overflow: hidden;
         }
 
         #chat { 
+            flex: 1; /* Nimmt allen verfügbaren Platz ein */
             overflow-y: auto; 
             padding: 10px; 
             display: flex; 
             flex-direction: column; 
             gap: 6px;
-            background-color: #001529;
             -webkit-overflow-scrolling: touch; 
-            /* Desktop: Höhe für ca. 3 Nachrichten */
-            height: 170px; 
-        }
-
-        @media (max-width: 600px) {
-            #chat { 
-                /* Mobil: Höhe für ca. 2 Nachrichten */
-                height: 115px; 
-            }
         }
 
         .msg { 
@@ -60,7 +44,6 @@
             font-size: 14px; 
             word-wrap: break-word;
             color: #fdf0c2; 
-            min-height: 48px; /* Sorgt für Stabilität der 2/3 Nachrichten-Regel */
         }
 
         .msg b { color: #fdf0c2; display: block; font-size: 13px; margin-bottom: 2px; }
@@ -69,37 +52,22 @@
             background-color: #fdf0c2; 
             padding: 10px; 
             width: 100%;
-            flex-grow: 1; /* Füllt den Rest der 250px Box aus */
-            display: flex;
-            align-items: center;
+            flex-shrink: 0; /* Verhindert, dass die Eingabe verschwindet */
         }
 
         .input-row { display: flex; gap: 5px; width: 100%; }
 
         input { 
-            background: #fff; 
-            border: none; 
-            padding: 8px; 
-            font-size: 14px; 
-            font-weight: bold; 
-            color: #333;
-            outline: none;
-            height: 38px;
-            -webkit-appearance: none;
+            background: #fff; border: none; padding: 8px; 
+            font-size: 14px; font-weight: bold; color: #333;
+            outline: none; height: 38px; -webkit-appearance: none;
         }
 
         #userName { width: 85px; flex-shrink: 0; }
         #userMsg { flex: 1; min-width: 0; }
-        .hp-field { display: none !important; }
-
         button { 
-            background: #001529; 
-            color: #fff; 
-            border: none;
-            padding: 0 15px; 
-            height: 38px;
-            cursor: pointer; 
-            font-weight: bold;
+            background: #001529; color: #fff; border: none;
+            padding: 0 15px; height: 38px; cursor: pointer; font-weight: bold;
         }
 
         #chat::-webkit-scrollbar { width: 6px; }
@@ -108,18 +76,16 @@
     </style>
 </head>
 <body>
-
-<div id="chat-container">
-    <div id="chat"></div>
-    <div id="input-area">
-        <div class="input-row">
-            <input type="text" id="botCheck" class="hp-field" tabindex="-1" autocomplete="off">
-            <input type="text" id="userName" placeholder="Name">
-            <input type="text" id="userMsg" placeholder="Nachricht..." onkeypress="if(event.key === 'Enter') send()">
-            <button id="sendBtn" onclick="send()">Senden</button>
+    <div id="chat-container">
+        <div id="chat"></div>
+        <div id="input-area">
+            <div class="input-row">
+                <input type="text" id="userName" placeholder="Name">
+                <input type="text" id="userMsg" placeholder="Nachricht..." onkeypress="if(event.key === 'Enter') send()">
+                <button id="sendBtn" onclick="send()">Senden</button>
+            </div>
         </div>
     </div>
-</div>
 
 <script>
     const firebaseConfig = {
@@ -131,16 +97,9 @@
         messagingSenderId: "1026092671512",
         appId: "1:1026092671512:web:1b38e71d21be7d3983196d"
     };
-    
     firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
     let isLocked = false;
-    const blacklist = ["arsch", "idiot", "wichser", "schlampe", "hure", "bastard", "depp", "missgeburt", "pisser", "fotze", "nazi", "hitler", "neger", "penis", "vagina", "fick"]; 
-
-    function containsBadWords(text) {
-        const lowerText = text.toLowerCase();
-        return blacklist.some(word => lowerText.includes(word));
-    }
 
     function scrollToBottom() {
         const chat = document.getElementById('chat');
@@ -151,21 +110,15 @@
         if (isLocked) return;
         const nameInput = document.getElementById('userName');
         const msgInput = document.getElementById('userMsg');
-        const sendBtn = document.getElementById('sendBtn');
         if (nameInput.value.trim() !== "" && msgInput.value.trim() !== "") {
-            if (containsBadWords(msgInput.value) || containsBadWords(nameInput.value)) {
-                alert("Deine Nachricht enthält unzulässige Begriffe.");
-                return;
-            }
             isLocked = true;
-            sendBtn.style.opacity = "0.5";
             db.ref("messages").push().set({
                 name: nameInput.value,
                 text: msgInput.value,
                 time: Date.now()
             });
             msgInput.value = "";
-            setTimeout(() => { isLocked = false; sendBtn.style.opacity = "1"; }, 3000);
+            setTimeout(() => { isLocked = false; }, 2000);
         }
     }
 
