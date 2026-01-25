@@ -11,7 +11,6 @@
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
     
     <style>
-        /* 1. Globaler Reset */
         * { 
             box-sizing: border-box; 
             margin: 0; 
@@ -19,12 +18,10 @@
             font-family: 'Istok Web', sans-serif !important; 
         }
         
-        /* Höhe auf 100% gesetzt, damit der iFrame die Kontrolle hat */
         html, body { 
             width: 100%; 
-            height: 100%; 
             background-color: transparent; 
-            overflow: hidden;
+            /* Kein overflow: hidden mehr, damit der Iframe atmen kann */
         }
 
         #chat-container {
@@ -32,13 +29,12 @@
             background-color: #001529;
             display: flex;
             flex-direction: column;
-            height: 100vh; /* Nutzt die gesamte verfügbare iFrame-Höhe */
+            /* Wir legen die Box-Größe hier fest, damit sie im Iframe stabil bleibt */
+            height: 250px; 
             overflow: hidden;
         }
 
-        /* 2. Chat-Verlauf */
         #chat { 
-            flex: 1; /* Nimmt allen verfügbaren Platz oberhalb der Maske ein */
             overflow-y: auto; 
             padding: 10px; 
             display: flex; 
@@ -46,6 +42,15 @@
             gap: 6px;
             background-color: #001529;
             -webkit-overflow-scrolling: touch; 
+            /* Desktop: Höhe für ca. 3 Nachrichten */
+            height: 170px; 
+        }
+
+        @media (max-width: 600px) {
+            #chat { 
+                /* Mobil: Höhe für ca. 2 Nachrichten */
+                height: 115px; 
+            }
         }
 
         .msg { 
@@ -55,21 +60,21 @@
             font-size: 14px; 
             word-wrap: break-word;
             color: #fdf0c2; 
+            min-height: 48px; /* Sorgt für Stabilität der 2/3 Nachrichten-Regel */
         }
 
-        /* 3. Eingabemaske */
+        .msg b { color: #fdf0c2; display: block; font-size: 13px; margin-bottom: 2px; }
+
         #input-area { 
             background-color: #fdf0c2; 
             padding: 10px; 
             width: 100%;
-            flex-shrink: 0; /* Verhindert, dass die Maske zusammengedrückt wird */
+            flex-grow: 1; /* Füllt den Rest der 250px Box aus */
+            display: flex;
+            align-items: center;
         }
 
-        .input-row { 
-            display: flex; 
-            gap: 5px; 
-            width: 100%; 
-        }
+        .input-row { display: flex; gap: 5px; width: 100%; }
 
         input { 
             background: #fff; 
@@ -97,19 +102,6 @@
             font-weight: bold;
         }
 
-        /* 4. MOBILE OPTIMIERUNG */
-        @media (max-width: 500px) {
-            #input-area { padding: 5px 8px; }
-            input, button { height: 32px; font-size: 13px; }
-            
-            @media (max-width: 400px) {
-                .input-row { flex-wrap: wrap; }
-                #userName { width: 100%; height: 28px; }
-                #userMsg { flex: 1; }
-            }
-        }
-
-        /* Scrollbar Design */
         #chat::-webkit-scrollbar { width: 6px; }
         #chat::-webkit-scrollbar-track { background: #001529; }
         #chat::-webkit-scrollbar-thumb { background: #fdf0c2; }
