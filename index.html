@@ -55,9 +55,22 @@
 
         .msg b { 
             color: #fdf0c2; 
-            display: block; 
+            display: inline-flex;
+            align-items: center;
             font-size: 13px; 
             margin-bottom: 2px; 
+        }
+
+        .verify-badge {
+            color: #ffa500;
+            font-size: 11px;
+            margin-left: 4px;
+            background: rgba(255, 165, 0, 0.2);
+            padding: 1px 4px;
+            border-radius: 3px;
+            font-weight: bold;
+            display: inline-block;
+            vertical-align: middle;
         }
 
         #input-area { 
@@ -138,14 +151,19 @@
     }
     const mySessionId = sessionStorage.getItem('chat_user_sid');
 
-    const blacklist = ["arsch", "idiot", "wichser", "schlampe", "hure", "bastard", "depp", "missgeburt", "pisser", "fotze", "nazi", "hitler", "neger", "penis", "vagina", "fick"]; 
+    // Erweiterte Blacklist um 30 zusätzliche Begriffe
+    const blacklist = [
+        "arsch", "idiot", "wichser", "schlampe", "hure", "bastard", "depp", "missgeburt", "pisser", "fotze", "nazi", "hitler", "neger", "penis", "vagina", "fick",
+        "hurensohn", "arschloch", "wixxer", "schwachkopf", "vollidiot", "spast", "spasti", "missgeburt", "nutte", "fotzenknecht", "pissnelke", "sauhund", "schweinehund",
+        "wichsgesicht", "kackbratze", "pissgesicht", "vollpfosten", "vollspast", "versager", "verpisst", "lutsch", "lutscher", "huren", "drecksau", "schandmaul",
+        "kanake", "fotzkopf", "pimmel", "pimmelberger", "pimmellutscher",  "kiki", "kikki", "kicki", "hyatt" "saftsack"
+    ]; 
 
     function containsBadWords(text) {
-        const lowerText = text.toLowerCase();
+        const lowerText = text.toLowerCase();,
         return blacklist.some(word => lowerText.includes(word));
     }
 
-    // Hilfsfunktion: Bereinigt einen Namen von Zahlen, Leerzeichen und Sonderzeichen
     function cleanName(name) {
         return name.toLowerCase().replace(/[^a-zA-ZäöüÄÖÜß]/g, "");
     }
@@ -166,14 +184,13 @@
 
         if (enteredName !== "" && enteredMsg !== "") {
             if (containsBadWords(enteredMsg) || containsBadWords(enteredName)) {
-                alert("Deine Nachricht enthält unzulässige Begriffe.");
+                alert("Deine Nachricht oder dein Name enthält unzulässige Begriffe.");
                 return;
             }
 
             isLocked = true;
             sendBtn.style.opacity = "0.5";
 
-            // Bereinigte Version des neu eingegebenen Namens
             const cleanedEntered = cleanName(enteredName);
 
             db.ref("messages").limitToLast(50).once("value", (snapshot) => {
@@ -185,8 +202,6 @@
                     if (msgData.sid !== mySessionId) {
                         const cleanedExisting = cleanName(msgData.name);
                         
-                        // 1. Prüft auf exakte Übereinstimmung der Buchstaben (Susi vs Susi2)
-                        // 2. Prüft, ob der bestehende Name im neuen Namen als Wortstamm enthalten ist (Susi vs SusiNeu)
                         if (cleanedExisting === cleanedEntered || 
                             (cleanedEntered.startsWith(cleanedExisting) && cleanedExisting.length >= 3)) {
                             nameTakenByOther = true;
@@ -214,13 +229,33 @@
         }
     }
 
-    db.ref("messages").limitToLast(50).on("child_added", (snapshot) => {
-        const data = snapshot.val();
+    db.ref("messages").limitToLast(50).on("value", (snapshot) => {
         const chat = document.getElementById('chat');
-        const div = document.createElement('div');
-        div.className = 'msg';
-        div.innerHTML = `<b>${data.name}</b> ${data.text}`;
-        chat.appendChild(div);
+        chat.innerHTML = ""; 
+        
+        const firstOwners = {};
+
+        snapshot.forEach((childSnapshot) => {
+            const data = childSnapshot.val();
+            const cleaned = cleanName(data.name);
+            if (!firstOwners[cleaned]) {
+                firstOwners[cleaned] = data.sid;
+            }
+        });
+
+        snapshot.forEach((childSnapshot) => {
+            const data = childSnapshot.val();
+            const cleaned = cleanName(data.name);
+            
+            const div = document.createElement('div');
+            div.className = 'msg';
+            
+            const hasBadge = (firstOwners[cleaned] === data.sid) ? '<span class="verify-badge">✔</span>' : '';
+            
+            div.innerHTML = `<b>${data.name}${hasBadge}</b> ${data.text}`;
+            chat.appendChild(div);
+        });
+        
         setTimeout(scrollToBottom, 50);
     });
 </script>
