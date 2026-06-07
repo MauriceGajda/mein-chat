@@ -11,7 +11,6 @@
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
     
     <style>
-        /* 1. Reset und Schrift-Zwang */
         * { 
             box-sizing: border-box; 
             margin: 0; 
@@ -19,7 +18,6 @@
             font-family: 'Istok Web', sans-serif !important; 
         }
         
-        /* 2. Fullscreen-Basis für den iFrame */
         html, body { 
             width: 100%; 
             height: 100%; 
@@ -27,19 +25,14 @@
             overflow: hidden; 
         }
 
-        /* 3. Der Container, der sich an den iFrame krallt */
         #chat-container {
             position: absolute;
-            top: 0; 
-            left: 0; 
-            right: 0; 
-            bottom: 0;
+            top: 0; left: 0; right: 0; bottom: 0;
             display: flex;
             flex-direction: column;
             background-color: #001529;
         }
 
-        /* 4. Chat-Verlauf: Füllt den verfügbaren Platz */
         #chat { 
             flex: 1; 
             overflow-y: auto; 
@@ -67,7 +60,6 @@
             margin-bottom: 2px; 
         }
 
-        /* 5. Eingabe-Bereich am unteren Ende */
         #input-area { 
             background-color: #fdf0c2; 
             padding: 10px; 
@@ -107,7 +99,6 @@
             font-weight: bold;
         }
 
-        /* Scrollbar Design */
         #chat::-webkit-scrollbar { width: 6px; }
         #chat::-webkit-scrollbar-track { background: #001529; }
         #chat::-webkit-scrollbar-thumb { background: #fdf0c2; }
@@ -128,7 +119,6 @@
 </div>
 
 <script>
-    // Firebase Konfiguration
     const firebaseConfig = {
         apiKey: "AIzaSyCq3ryTxKbb3WGi06jH8EWAy6avUNw4Nuc",
         authDomain: "meinwebchat.firebaseapp.com",
@@ -143,12 +133,21 @@
     const db = firebase.database();
     let isLocked = false;
 
-    // Filter für böse Wörter
-    const blacklist = ["arsch", "arsch ficken", "hayatt", "hayhat", "hayet", "hayhatt", "hyatt", "Hayattt", "hayattttt", "heyat", "hayett", "hayet", "olle", "die olle", "in den arsch ficken", "ficken", "fick", "fuck", "schwuchtel", "tunte", "faggot", "hurensohn", "huso", "hurentochter", "betrüger", "betrügerin", "lügnerin", "lügner", "anwalt", "rechtsanwalt", "petry", "frauke petry", "nazi", "hitler", "afd", "deutschland über alles", "alice weidel", "weidel", "gauland", "blaue herzen", "crash out", "rassistin", "dollhouse",  "idiot", "wichser", "schlampe", "hure", "bastard", "depp", "kiki", "sau", "kikioderkarsten", "kikioderkarten", "anschaffen", "fick dich", "schwuchtel", "fickwirt", "missgeburt", "pisser", "fotze", "nazi", "hitler", "neger", "penis", "vagina", "fick"]; 
+    if (!sessionStorage.getItem('chat_user_sid')) {
+        sessionStorage.setItem('chat_user_sid', 'sid_' + Math.random().toString(36).substr(2, 9));
+    }
+    const mySessionId = sessionStorage.getItem('chat_user_sid');
+
+    const blacklist = ["arsch", "idiot", "wichser", "schlampe", "hure", "bastard", "depp", "missgeburt", "pisser", "fotze", "nazi", "hitler", "neger", "penis", "vagina", "fick"]; 
 
     function containsBadWords(text) {
         const lowerText = text.toLowerCase();
         return blacklist.some(word => lowerText.includes(word));
+    }
+
+    // Hilfsfunktion: Bereinigt einen Namen von Zahlen, Leerzeichen und Sonderzeichen
+    function cleanName(name) {
+        return name.toLowerCase().replace(/[^a-zA-ZäöüÄÖÜß]/g, "");
     }
 
     function scrollToBottom() {
@@ -162,24 +161,59 @@
         const msgInput = document.getElementById('userMsg');
         const sendBtn = document.getElementById('sendBtn');
         
-        if (nameInput.value.trim() !== "" && msgInput.value.trim() !== "") {
-            if (containsBadWords(msgInput.value) || containsBadWords(nameInput.value)) {
+        const enteredName = nameInput.value.trim();
+        const enteredMsg = msgInput.value.trim();
+
+        if (enteredName !== "" && enteredMsg !== "") {
+            if (containsBadWords(enteredMsg) || containsBadWords(enteredName)) {
                 alert("Deine Nachricht enthält unzulässige Begriffe.");
                 return;
             }
+
             isLocked = true;
             sendBtn.style.opacity = "0.5";
-            db.ref("messages").push().set({
-                name: nameInput.value,
-                text: msgInput.value,
-                time: Date.now()
+
+            // Bereinigte Version des neu eingegebenen Namens
+            const cleanedEntered = cleanName(enteredName);
+
+            db.ref("messages").limitToLast(50).once("value", (snapshot) => {
+                let nameTakenByOther = false;
+
+                snapshot.forEach((childSnapshot) => {
+                    const msgData = childSnapshot.val();
+                    
+                    if (msgData.sid !== mySessionId) {
+                        const cleanedExisting = cleanName(msgData.name);
+                        
+                        // 1. Prüft auf exakte Übereinstimmung der Buchstaben (Susi vs Susi2)
+                        // 2. Prüft, ob der bestehende Name im neuen Namen als Wortstamm enthalten ist (Susi vs SusiNeu)
+                        if (cleanedExisting === cleanedEntered || 
+                            (cleanedEntered.startsWith(cleanedExisting) && cleanedExisting.length >= 3)) {
+                            nameTakenByOther = true;
+                        }
+                    }
+                });
+
+                if (nameTakenByOther) {
+                    alert("Dieser Name oder eine zu ähnliche Variante wird aktuell bereits verwendet. Bitte wähle einen eindeutigen Namen.");
+                    isLocked = false;
+                    sendBtn.style.opacity = "1";
+                    return;
+                }
+
+                db.ref("messages").push().set({
+                    name: enteredName,
+                    text: enteredMsg,
+                    time: Date.now(),
+                    sid: mySessionId
+                });
+
+                msgInput.value = "";
+                setTimeout(() => { isLocked = false; sendBtn.style.opacity = "1"; }, 3000);
             });
-            msgInput.value = "";
-            setTimeout(() => { isLocked = false; sendBtn.style.opacity = "1"; }, 3000);
         }
     }
 
-    // Nachrichten in Echtzeit laden
     db.ref("messages").limitToLast(50).on("child_added", (snapshot) => {
         const data = snapshot.val();
         const chat = document.getElementById('chat');
