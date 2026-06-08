@@ -151,16 +151,15 @@
     }
     const mySessionId = sessionStorage.getItem('chat_user_sid');
 
-    // Erweiterte Blacklist um 30 zusätzliche Begriffe
     const blacklist = [
         "arsch", "idiot", "wichser", "schlampe", "hure", "bastard", "depp", "missgeburt", "pisser", "fotze", "nazi", "hitler", "neger", "penis", "vagina", "fick",
         "hurensohn", "arschloch", "wixxer", "schwachkopf", "vollidiot", "spast", "spasti", "missgeburt", "nutte", "fotzenknecht", "pissnelke", "sauhund", "schweinehund",
         "wichsgesicht", "kackbratze", "pissgesicht", "vollpfosten", "vollspast", "versager", "verpisst", "lutsch", "lutscher", "huren", "drecksau", "schandmaul",
-        "kanake", "fotzkopf", "pimmel", "pimmelberger", "pimmellutscher",  "kiki", "kikki", "kicki", "hyatt" "saftsack"
+        "kanake", "fotzkopf", "pimmel", "pimmelberger", "pimmellutscher", "hyatt", "kiki", "saftsack"
     ]; 
 
     function containsBadWords(text) {
-        const lowerText = text.toLowerCase();,
+        const lowerText = text.toLowerCase();
         return blacklist.some(word => lowerText.includes(word));
     }
 
@@ -196,18 +195,18 @@
             db.ref("messages").limitToLast(50).once("value", (snapshot) => {
                 let nameTakenByOther = false;
 
-                snapshot.forEach((childSnapshot) => {
-                    const msgData = childSnapshot.val();
-                    
-                    if (msgData.sid !== mySessionId) {
-                        const cleanedExisting = cleanName(msgData.name);
-                        
-                        if (cleanedExisting === cleanedEntered || 
-                            (cleanedEntered.startsWith(cleanedExisting) && cleanedExisting.length >= 3)) {
-                            nameTakenByOther = true;
+                if (snapshot.exists()) {
+                    snapshot.forEach((childSnapshot) => {
+                        const msgData = childSnapshot.val();
+                        if (msgData && msgData.sid && msgData.name && msgData.sid !== mySessionId) {
+                            const cleanedExisting = cleanName(msgData.name);
+                            if (cleanedExisting === cleanedEntered || 
+                                (cleanedEntered.startsWith(cleanedExisting) && cleanedExisting.length >= 3)) {
+                                nameTakenByOther = true;
+                            }
                         }
-                    }
-                });
+                    });
+                }
 
                 if (nameTakenByOther) {
                     alert("Dieser Name oder eine zu ähnliche Variante wird aktuell bereits verwendet. Bitte wähle einen eindeutigen Namen.");
@@ -233,27 +232,32 @@
         const chat = document.getElementById('chat');
         chat.innerHTML = ""; 
         
+        if (!snapshot.exists()) {
+            return;
+        }
+
         const firstOwners = {};
 
         snapshot.forEach((childSnapshot) => {
             const data = childSnapshot.val();
-            const cleaned = cleanName(data.name);
-            if (!firstOwners[cleaned]) {
-                firstOwners[cleaned] = data.sid;
+            if (data && data.name && data.sid) {
+                const cleaned = cleanName(data.name);
+                if (!firstOwners[cleaned]) {
+                    firstOwners[cleaned] = data.sid;
+                }
             }
         });
 
         snapshot.forEach((childSnapshot) => {
             const data = childSnapshot.val();
-            const cleaned = cleanName(data.name);
-            
-            const div = document.createElement('div');
-            div.className = 'msg';
-            
-            const hasBadge = (firstOwners[cleaned] === data.sid) ? '<span class="verify-badge">✔</span>' : '';
-            
-            div.innerHTML = `<b>${data.name}${hasBadge}</b> ${data.text}`;
-            chat.appendChild(div);
+            if (data && data.name && data.text) {
+                const cleaned = cleanName(data.name);
+                const div = document.createElement('div');
+                div.className = 'msg';
+                const hasBadge = (firstOwners[cleaned] === data.sid) ? '<span class="verify-badge">✔</span>' : '';
+                div.innerHTML = `<b>${data.name}${hasBadge}</b> ${data.text}`;
+                chat.appendChild(div);
+            }
         });
         
         setTimeout(scrollToBottom, 50);
