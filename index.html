@@ -144,7 +144,9 @@
     
     firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
+    
     let isLocked = false;
+    let lastSentMessage = ""; // Lokaler Speicher für den Duplikat-Filter
 
     if (!sessionStorage.getItem('chat_user_sid')) {
         sessionStorage.setItem('chat_user_sid', 'sid_' + Math.random().toString(36).substr(2, 9));
@@ -155,7 +157,7 @@
         "arsch", "idiot", "wichser", "schlampe", "hure", "bastard", "depp", "missgeburt", "pisser", "fotze", "nazi", "hitler", "neger", "penis", "vagina", "fick",
         "hurensohn", "arschloch", "wixxer", "schwachkopf", "vollidiot", "spast", "spasti", "missgeburt", "nutte", "fotzenknecht", "pissnelke", "sauhund", "schweinehund",
         "wichsgesicht", "kackbratze", "pissgesicht", "vollpfosten", "vollspast", "versager", "verpisst", "lutsch", "lutscher", "huren", "drecksau", "schandmaul",
-        "kanake", "fotzkopf", "pimmel", "pimmelberger", "pimmellutscher", "hyatt", "kiki", "saftsack"
+        "kanake", "fotzkopf", "pimmel", "pimmelberger", "pimmellutscher", "kitty", "kiki", "kikki", "kicki", "hyatt", "homosau", "schwuchtel", "tunte", "saftsack"
     ]; 
 
     function containsBadWords(text) {
@@ -165,6 +167,11 @@
 
     function cleanName(name) {
         return name.toLowerCase().replace(/[^a-zA-ZäöüÄÖÜß]/g, "");
+    }
+
+    // RegEx zur Erkennung von Zeichen-Spam (mehr als 4 gleiche Zeichen am Stück)
+    function hasLetterSpam(text) {
+        return /(.)\1{4,}/.test(text);
     }
 
     function scrollToBottom() {
@@ -182,9 +189,18 @@
         const enteredMsg = msgInput.value.trim();
 
         if (enteredName !== "" && enteredMsg !== "") {
-            if (containsBadWords(enteredMsg) || containsBadWords(enteredName)) {
-                alert("Deine Nachricht oder dein Name enthält unzulässige Begriffe.");
+            
+            // 1. DUPLIKAT-FILTER
+            if (enteredMsg.toLowerCase() === lastSentMessage.toLowerCase()) {
+                msgInput.value = ""; // Text stillschweigend löschen
                 return;
+            }
+
+            let triggerShadowBan = false;
+
+            // 2. PRÜFUNG AUF TROLL-VERHALTEN (Wörter oder Zeichen-Spam)
+            if (containsBadWords(enteredMsg) || containsBadWords(enteredName) || hasLetterSpam(enteredMsg)) {
+                triggerShadowBan = true; // Stillschweigend als Troll markieren
             }
 
             isLocked = true;
@@ -198,7 +214,8 @@
                 if (snapshot.exists()) {
                     snapshot.forEach((childSnapshot) => {
                         const msgData = childSnapshot.val();
-                        if (msgData && msgData.sid && msgData.name && msgData.sid !== mySessionId) {
+                        // Vergleiche Namen nur mit echten Nachrichten (nicht mit Shadowbanned-Einträgen)
+                        if (msgData && msgData.sid && msgData.name && !msgData.shadowBanned && msgData.sid !== mySessionId) {
                             const cleanedExisting = cleanName(msgData.name);
                             if (cleanedExisting === cleanedEntered || 
                                 (cleanedEntered.startsWith(cleanedExisting) && cleanedExisting.length >= 3)) {
@@ -208,20 +225,24 @@
                     });
                 }
 
-                if (nameTakenByOther) {
+                // Eine echte Namensdopplung abweisen, außer der User wird eh shadowbanned
+                if (nameTakenByOther && !triggerShadowBan) {
                     alert("Dieser Name oder eine zu ähnliche Variante wird aktuell bereits verwendet. Bitte wähle einen eindeutigen Namen.");
                     isLocked = false;
                     sendBtn.style.opacity = "1";
                     return;
                 }
 
+                // Nachricht in die Firebase-Datenbank schreiben
                 db.ref("messages").push().set({
                     name: enteredName,
                     text: enteredMsg,
                     time: Date.now(),
-                    sid: mySessionId
+                    sid: mySessionId,
+                    shadowBanned: triggerShadowBan
                 });
 
+                lastSentMessage = enteredMsg; // Speichern für den Duplikat-Filter
                 msgInput.value = "";
                 setTimeout(() => { isLocked = false; sendBtn.style.opacity = "1"; }, 3000);
             });
@@ -238,9 +259,10 @@
 
         const firstOwners = {};
 
+        // 1. DURCHLAUF: Wer hält die echten Namensrechte (Shadowbanned User ignorieren)
         snapshot.forEach((childSnapshot) => {
             const data = childSnapshot.val();
-            if (data && data.name && data.sid) {
+            if (data && data.name && data.sid && !data.shadowBanned) {
                 const cleaned = cleanName(data.name);
                 if (!firstOwners[cleaned]) {
                     firstOwners[cleaned] = data.sid;
@@ -248,13 +270,23 @@
             }
         });
 
+        // 2. DURCHLAUF: Chatnachrichten auf den Bildschirmen rendern
         snapshot.forEach((childSnapshot) => {
             const data = childSnapshot.val();
             if (data && data.name && data.text) {
+                
+                // SCHATTENGEFÄNGNIS-LOGIK: Überspringen, außer man ist selbst der betroffene Absender
+                if (data.shadowBanned && data.sid !== mySessionId) {
+                    return; 
+                }
+
                 const cleaned = cleanName(data.name);
                 const div = document.createElement('div');
                 div.className = 'msg';
-                const hasBadge = (firstOwners[cleaned] === data.sid) ? '<span class="verify-badge">✔</span>' : '';
+                
+                // Haken-Badge wird nur an nicht-shadowbanned Erstbesitzer vergeben
+                const hasBadge = (!data.shadowBanned && firstOwners[cleaned] === data.sid) ? '<span class="verify-badge">✔</span>' : '';
+                
                 div.innerHTML = `<b>${data.name}${hasBadge}</b> ${data.text}`;
                 chat.appendChild(div);
             }
