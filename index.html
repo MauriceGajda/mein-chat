@@ -51,7 +51,12 @@
             font-size: 14px; 
             word-wrap: break-word;
             color: #fdf0c2; 
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
         }
+
+        .msg-content { flex: 1; }
 
         .msg b { 
             color: #fdf0c2; 
@@ -69,8 +74,6 @@
             padding: 1px 4px;
             border-radius: 3px;
             font-weight: bold;
-            display: inline-block;
-            vertical-align: middle;
         }
 
         .host-badge {
@@ -82,9 +85,40 @@
             border-radius: 3px;
             font-weight: bold;
             text-transform: uppercase;
-            display: inline-block;
-            vertical-align: middle;
             box-shadow: 0 0 4px rgba(255, 165, 0, 0.4);
+        }
+
+        /* Admin-Aktionsbuttons im Chat */
+        .admin-actions {
+            display: none; /* Standardmäßig unsichtbar */
+            gap: 8px;
+            margin-left: 10px;
+        }
+        
+        .admin-btn {
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-size: 14px;
+            padding: 2px 5px;
+            border-radius: 3px;
+            height: auto;
+        }
+        .admin-btn:hover { background: rgba(255,255,255,0.2); }
+
+        /* Das Admin-Kontrollzentrum über der Eingabeleiste */
+        #admin-panel {
+            display: none; /* Standardmäßig unsichtbar */
+            background: #ffa500;
+            color: #001529;
+            padding: 6px 12px;
+            font-size: 12px;
+            font-weight: bold;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            border-bottom: 2px solid #001529;
+            justify-content: space-between;
+            align-items: center;
         }
 
         #input-area { 
@@ -135,6 +169,13 @@
 
 <div id="chat-container">
     <div id="chat"></div>
+    
+    <!-- Unsichtbares Admin-Kontrollzentrum -->
+    <div id="admin-panel">
+        <span>🔒 Moderations-Modus aktiv</span>
+        <button onclick="clearAllMessages()" style="background:#001529; color:#fff; font-size:10px; height:24px; padding:0 8px;">Kompletten Chat leeren</button>
+    </div>
+
     <div id="input-area">
         <div class="input-row">
             <input type="text" id="botCheck" class="hp-field" tabindex="-1" autocomplete="off">
@@ -161,6 +202,7 @@
     
     let isLocked = false;
     let lastSentMessage = "";
+    let amILoggedInAsAdmin = false; // Status für lokale Admin-Ansicht
 
     if (!sessionStorage.getItem('chat_user_sid')) {
         sessionStorage.setItem('chat_user_sid', 'sid_' + Math.random().toString(36).substr(2, 9));
@@ -174,7 +216,6 @@
         "kanake", "fotzkopf", "pimmel", "pimmelberger", "pimmellutscher", "saftsack"
     ]; 
 
-    // Erweiterte Liste der geschützten Block-Namen (alle in Kleinbuchstaben für den Abgleich)
     const protectedNames = [
         "maurice", "yvonne", "trl", "talknow", "total reality live", "totalrealitylive",
         "milan", "kiki", "hitler", "adolf hitler", "alice weidel", "björn höcke", "bjoern hoecke", "frauke petry"
@@ -199,6 +240,47 @@
         chat.scrollTop = chat.scrollHeight;
     }
 
+    // --- ADMIN FUNKTIONEN ---
+    function deleteMessage(msgId) {
+        if(confirm("Möchtest du diese Nachricht wirklich für alle löschen?")) {
+            db.ref("messages/" + msgId).remove();
+        }
+    }
+
+    function banUser(userSid, userName) {
+        if(confirm(`Möchtest du den Nutzer "${userName}" dauerhaft sperren? Alle seine Nachrichten verschwinden.`)) {
+            // Füge die SID zur globalen Blacklist in Firebase hinzu
+            db.ref("banned_sids/" + userSid).set(true);
+            
+            // Lösche direkt alle existierenden Nachrichten dieser SID
+            db.ref("messages").once("value", (snapshot) => {
+                if(snapshot.exists()) {
+                    snapshot.forEach((child) => {
+                        if(child.val().sid === userSid) {
+                            db.ref("messages/" + child.key).remove();
+                        }
+                    });
+                }
+            });
+        }
+    }
+
+    function clearAllMessages() {
+        if(confirm("Möchtest du wirklich den KOMPLETTEN Chatverlauf für alle leeren?")) {
+            db.ref("messages").remove();
+        }
+    }
+
+    // Prüfe im Hintergrund live, ob die eigene Session-ID gesperrt wurde
+    db.ref("banned_sids/" + mySessionId).on("value", (snapshot) => {
+        if (snapshot.exists()) {
+            isLocked = true;
+            document.getElementById("sendBtn").disabled = true;
+            document.getElementById("userMsg").placeholder = "Du wurdest aus dem Chat ausgeschlossen.";
+            document.getElementById("userMsg").disabled = true;
+        }
+    });
+
     function send() {
         if (isLocked) return;
         const nameInput = document.getElementById('userName');
@@ -220,11 +302,9 @@
                 triggerShadowBan = true;
             }
 
-            // --- AUTHENTIFIZIERUNGSPRÜFUNG FÜR BLOCK-NAMEN ---
             let isVerifiedHost = false;
             let checkName = enteredName.toLowerCase();
 
-            // Prüfen, ob die Eingabe mit dem geheimen Code endet
             if (checkName.endsWith(secretCode)) {
                 const baseName = enteredName.substring(0, enteredName.length - secretCode.length);
                 const cleanBase = baseName.trim().toLowerCase();
@@ -233,9 +313,12 @@
                     isVerifiedHost = true;
                     enteredName = baseName.trim(); 
                     checkName = cleanBase;
+                    
+                    // Admin-Modus lokal freischalten
+                    amILoggedInAsAdmin = true;
+                    document.getElementById("admin-panel").style.display = "flex";
                 }
             } else {
-                // Wenn kein Code eingegeben wurde, wird auch auf bereinigte Varianten geprüft
                 const cleanedEnteredCheck = cleanName(enteredName);
                 const isBlockedVariant = protectedNames.some(pName => {
                     const cleanedPName = cleanName(pName);
@@ -314,10 +397,12 @@
         });
 
         snapshot.forEach((childSnapshot) => {
+            const msgId = childSnapshot.key;
             const data = childSnapshot.val();
+            
             if (data && data.name && data.text) {
                 
-                if (data.shadowBanned && data.sid !== mySessionId) {
+                if (data.shadowBanned && data.sid !== mySessionId && !amILoggedInAsAdmin) {
                     return; 
                 }
 
@@ -332,8 +417,26 @@
                     badgeHTML = '<span class="verify-badge">✔</span>';
                 }
                 
-                div.innerHTML = `<b>${data.name}${badgeHTML}</b> ${data.text}`;
+                // Extra-Info für den Admin, falls eine Nachricht im Schattengefängnis gefangen ist
+                let shadowHint = (data.shadowBanned && amILoggedInAsAdmin) ? ' <i style="color:red; font-size:11px;">(Shadowbanned)</i>' : '';
+                
+                // Struktureller Aufbau der Nachricht
+                div.innerHTML = `
+                    <div class="msg-content">
+                        <b>${data.name}${badgeHTML}${shadowHint}</b> <span style="color:#fff;">${data.text}</span>
+                    </div>
+                    <div class="admin-actions" id="actions-${msgId}">
+                        <button class="admin-btn" title="Nachricht löschen" onclick="deleteMessage('${msgId}')">🗑️</button>
+                        <button class="admin-btn" title="Nutzer sperren" onclick="banUser('${data.sid}', '${data.name}')">🚫</button>
+                    </div>
+                `;
+                
                 chat.appendChild(div);
+
+                // Wenn du als Admin eingeloggt bist, schalte die Lösch-Buttons neben den Nachrichten live frei
+                if (amILoggedInAsAdmin) {
+                    document.getElementById(`actions-${msgId}`).style.display = 'flex';
+                }
             }
         });
         
