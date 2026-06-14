@@ -73,6 +73,20 @@
             vertical-align: middle;
         }
 
+        .host-badge {
+            color: #001529;
+            font-size: 10px;
+            margin-left: 5px;
+            background: #ffa500;
+            padding: 1px 5px;
+            border-radius: 3px;
+            font-weight: bold;
+            text-transform: uppercase;
+            display: inline-block;
+            vertical-align: middle;
+            box-shadow: 0 0 4px rgba(255, 165, 0, 0.4);
+        }
+
         #input-area { 
             background-color: #fdf0c2; 
             padding: 10px; 
@@ -146,7 +160,7 @@
     const db = firebase.database();
     
     let isLocked = false;
-    let lastSentMessage = ""; // Lokaler Speicher für den Duplikat-Filter
+    let lastSentMessage = "";
 
     if (!sessionStorage.getItem('chat_user_sid')) {
         sessionStorage.setItem('chat_user_sid', 'sid_' + Math.random().toString(36).substr(2, 9));
@@ -157,8 +171,15 @@
         "arsch", "idiot", "wichser", "schlampe", "hure", "bastard", "depp", "missgeburt", "pisser", "fotze", "nazi", "hitler", "neger", "penis", "vagina", "fick",
         "hurensohn", "arschloch", "wixxer", "schwachkopf", "vollidiot", "spast", "spasti", "missgeburt", "nutte", "fotzenknecht", "pissnelke", "sauhund", "schweinehund",
         "wichsgesicht", "kackbratze", "pissgesicht", "vollpfosten", "vollspast", "versager", "verpisst", "lutsch", "lutscher", "huren", "drecksau", "schandmaul",
-        "kanake", "fotzkopf", "pimmel", "pimmelberger", "pimmellutscher", "kitty", "kiki", "kikki", "kicki", "hyatt", "homosau", "schwuchtel", "tunte", "saftsack"
+        "kanake", "fotzkopf", "pimmel", "pimmelberger", "pimmellutscher", "saftsack"
     ]; 
+
+    // Erweiterte Liste der geschützten Block-Namen (alle in Kleinbuchstaben für den Abgleich)
+    const protectedNames = [
+        "maurice", "yvonne", "trl", "talknow", "total reality live", "totalrealitylive",
+        "milan", "kiki", "hitler", "adolf hitler", "alice weidel", "björn höcke", "bjoern hoecke", "frauke petry"
+    ];
+    const secretCode = "_1104";
 
     function containsBadWords(text) {
         const lowerText = text.toLowerCase();
@@ -169,7 +190,6 @@
         return name.toLowerCase().replace(/[^a-zA-ZäöüÄÖÜß]/g, "");
     }
 
-    // RegEx zur Erkennung von Zeichen-Spam (mehr als 4 gleiche Zeichen am Stück)
     function hasLetterSpam(text) {
         return /(.)\1{4,}/.test(text);
     }
@@ -185,22 +205,48 @@
         const msgInput = document.getElementById('userMsg');
         const sendBtn = document.getElementById('sendBtn');
         
-        const enteredName = nameInput.value.trim();
+        let enteredName = nameInput.value.trim();
         const enteredMsg = msgInput.value.trim();
 
         if (enteredName !== "" && enteredMsg !== "") {
             
-            // 1. DUPLIKAT-FILTER
             if (enteredMsg.toLowerCase() === lastSentMessage.toLowerCase()) {
-                msgInput.value = ""; // Text stillschweigend löschen
+                msgInput.value = "";
                 return;
             }
 
             let triggerShadowBan = false;
-
-            // 2. PRÜFUNG AUF TROLL-VERHALTEN (Wörter oder Zeichen-Spam)
             if (containsBadWords(enteredMsg) || containsBadWords(enteredName) || hasLetterSpam(enteredMsg)) {
-                triggerShadowBan = true; // Stillschweigend als Troll markieren
+                triggerShadowBan = true;
+            }
+
+            // --- AUTHENTIFIZIERUNGSPRÜFUNG FÜR BLOCK-NAMEN ---
+            let isVerifiedHost = false;
+            let checkName = enteredName.toLowerCase();
+
+            // Prüfen, ob die Eingabe mit dem geheimen Code endet
+            if (checkName.endsWith(secretCode)) {
+                const baseName = enteredName.substring(0, enteredName.length - secretCode.length);
+                const cleanBase = baseName.trim().toLowerCase();
+
+                if (protectedNames.includes(cleanBase)) {
+                    isVerifiedHost = true;
+                    enteredName = baseName.trim(); 
+                    checkName = cleanBase;
+                }
+            } else {
+                // Wenn kein Code eingegeben wurde, wird auch auf bereinigte Varianten geprüft
+                const cleanedEnteredCheck = cleanName(enteredName);
+                const isBlockedVariant = protectedNames.some(pName => {
+                    const cleanedPName = cleanName(pName);
+                    return cleanedEnteredCheck === cleanedPName || 
+                           (cleanedEnteredCheck.startsWith(cleanedPName) && cleanedPName.length >= 3);
+                });
+
+                if (isBlockedVariant) {
+                    alert("Dieser Name ist geschützt und kann von regulären Nutzern nicht verwendet werden.");
+                    return;
+                }
             }
 
             isLocked = true;
@@ -214,7 +260,6 @@
                 if (snapshot.exists()) {
                     snapshot.forEach((childSnapshot) => {
                         const msgData = childSnapshot.val();
-                        // Vergleiche Namen nur mit echten Nachrichten (nicht mit Shadowbanned-Einträgen)
                         if (msgData && msgData.sid && msgData.name && !msgData.shadowBanned && msgData.sid !== mySessionId) {
                             const cleanedExisting = cleanName(msgData.name);
                             if (cleanedExisting === cleanedEntered || 
@@ -225,24 +270,23 @@
                     });
                 }
 
-                // Eine echte Namensdopplung abweisen, außer der User wird eh shadowbanned
-                if (nameTakenByOther && !triggerShadowBan) {
+                if (nameTakenByOther && !triggerShadowBan && !isVerifiedHost) {
                     alert("Dieser Name oder eine zu ähnliche Variante wird aktuell bereits verwendet. Bitte wähle einen eindeutigen Namen.");
                     isLocked = false;
                     sendBtn.style.opacity = "1";
                     return;
                 }
 
-                // Nachricht in die Firebase-Datenbank schreiben
                 db.ref("messages").push().set({
                     name: enteredName,
                     text: enteredMsg,
                     time: Date.now(),
                     sid: mySessionId,
-                    shadowBanned: triggerShadowBan
+                    shadowBanned: triggerShadowBan,
+                    isHost: isVerifiedHost
                 });
 
-                lastSentMessage = enteredMsg; // Speichern für den Duplikat-Filter
+                lastSentMessage = enteredMsg;
                 msgInput.value = "";
                 setTimeout(() => { isLocked = false; sendBtn.style.opacity = "1"; }, 3000);
             });
@@ -259,7 +303,6 @@
 
         const firstOwners = {};
 
-        // 1. DURCHLAUF: Wer hält die echten Namensrechte (Shadowbanned User ignorieren)
         snapshot.forEach((childSnapshot) => {
             const data = childSnapshot.val();
             if (data && data.name && data.sid && !data.shadowBanned) {
@@ -270,12 +313,10 @@
             }
         });
 
-        // 2. DURCHLAUF: Chatnachrichten auf den Bildschirmen rendern
         snapshot.forEach((childSnapshot) => {
             const data = childSnapshot.val();
             if (data && data.name && data.text) {
                 
-                // SCHATTENGEFÄNGNIS-LOGIK: Überspringen, außer man ist selbst der betroffene Absender
                 if (data.shadowBanned && data.sid !== mySessionId) {
                     return; 
                 }
@@ -284,10 +325,14 @@
                 const div = document.createElement('div');
                 div.className = 'msg';
                 
-                // Haken-Badge wird nur an nicht-shadowbanned Erstbesitzer vergeben
-                const hasBadge = (!data.shadowBanned && firstOwners[cleaned] === data.sid) ? '<span class="verify-badge">✔</span>' : '';
+                let badgeHTML = '';
+                if (data.isHost) {
+                    badgeHTML = '<span class="host-badge">Host</span>';
+                } else if (!data.shadowBanned && firstOwners[cleaned] === data.sid) {
+                    badgeHTML = '<span class="verify-badge">✔</span>';
+                }
                 
-                div.innerHTML = `<b>${data.name}${hasBadge}</b> ${data.text}`;
+                div.innerHTML = `<b>${data.name}${badgeHTML}</b> ${data.text}`;
                 chat.appendChild(div);
             }
         });
