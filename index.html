@@ -260,7 +260,6 @@
         "kanake", "fotzkopf", "pimmel", "pimmelberger", "pimmellutscher", "saftsack"
     ]; 
 
-    // Feste Host- & VIP-Namen für den Code 1104
     const protectedNames = [
         "maurice", "yvonne", "trl", "talknow", "total reality live", "totalrealitylive",
         "milan", "kiki", "hitler", "adolf hitler", "alice weidel", "björn höcke", "bjoern hoecke", "frauke petry"
@@ -300,7 +299,6 @@
         chat.scrollTop = chat.scrollHeight;
     }
 
-    // --- FREIWILLIGE REGISTRIERUNG FÜR STAMMGÄSTE ---
     function registerAccount() {
         const name = document.getElementById("regName").value.trim();
         const pass = document.getElementById("regPass").value.trim();
@@ -317,7 +315,6 @@
 
         const cleanKey = cleanName(name);
 
-        // Prüfen, ob der Name zu den festen Host-Namen gehört
         if (protectedNames.includes(cleanKey)) {
             alert("Dieser Name ist geschützt und kann nicht frei registriert werden.");
             return;
@@ -341,7 +338,6 @@
         });
     }
 
-    // --- STAMMGAST LOGIN ---
     function loginAccount() {
         const name = document.getElementById("regName").value.trim();
         const pass = document.getElementById("regPass").value.trim();
@@ -432,57 +428,51 @@
                 triggerShadowBan = true;
             }
 
-            let isVerifiedHost = false;
             let checkName = enteredName.toLowerCase();
 
-            // 1. ANMELDUNG FÜR HOSTS VIA CODE 1104
+            // PRIORIÄT 1: PRÜFUNG AUF HOST-CODE (_1104)
             if (checkName.endsWith(secretCode)) {
                 const baseName = enteredName.substring(0, enteredName.length - secretCode.length);
                 const cleanBase = baseName.trim().toLowerCase();
 
                 if (protectedNames.includes(cleanBase)) {
-                    isVerifiedHost = true;
-                    enteredName = baseName.trim();
-                    checkName = cleanBase;
-
-                    // Admin-Konsole aktivieren
                     amILoggedInAsAdmin = true;
                     document.getElementById("admin-panel").style.display = "flex";
-                }
-            } else if (loggedInUser) {
-                // 2. STAMMGAST SCHREIBT EINGELOGGT
-                executeSend(loggedInUser.name, enteredMsg, triggerShadowBan, false, true);
-                return;
-            } else {
-                // 3. GAST PRÜFUNG: Ist der Name geschützt oder bereits von einem Stammgast registriert?
-                const cleanedEnteredCheck = cleanName(enteredName);
-                
-                // Prüfen ob Host-Name
-                const isHostProtected = protectedNames.some(pName => {
-                    const cleanedPName = cleanName(pName);
-                    return cleanedEnteredCheck === cleanedPName || 
-                           (cleanedEnteredCheck.startsWith(cleanedPName) && cleanedPName.length >= 3);
-                });
-
-                if (isHostProtected) {
-                    alert("Dieser Name ist geschützt.");
+                    
+                    // Schickt die Nachricht sofort als verifizierter Host ab
+                    executeSend(baseName.trim(), enteredMsg, triggerShadowBan, true, false);
                     return;
                 }
+            }
 
-                // Prüfen ob in der Stammgast-Datenbank registriert
-                db.ref("users/" + cleanedEnteredCheck).once("value", (userSnap) => {
-                    if (userSnap.exists()) {
-                        alert("Dieser Name gehört einem registrierten Stammgast. Bitte klicke auf das Schloss (🔒), um dich einzuloggen, oder wähle einen anderen Namen.");
-                        return;
-                    }
-
-                    // Reiner Gast sendet ohne Badge
-                    executeSend(enteredName, enteredMsg, triggerShadowBan, false, false);
-                });
+            // PRIORITÄT 2: EINGELOGGTER STAMMGAST
+            if (loggedInUser) {
+                executeSend(loggedInUser.name, enteredMsg, triggerShadowBan, false, true);
                 return;
             }
 
-            executeSend(enteredName, enteredMsg, triggerShadowBan, isVerifiedHost, false);
+            // PRIORITÄT 3: GAST-PRÜFUNG
+            const cleanedEnteredCheck = cleanName(enteredName);
+            
+            const isHostProtected = protectedNames.some(pName => {
+                const cleanedPName = cleanName(pName);
+                return cleanedEnteredCheck === cleanedPName || 
+                       (cleanedEnteredCheck.startsWith(cleanedPName) && cleanedPName.length >= 3);
+            });
+
+            if (isHostProtected) {
+                alert("Dieser Name ist geschützt.");
+                return;
+            }
+
+            db.ref("users/" + cleanedEnteredCheck).once("value", (userSnap) => {
+                if (userSnap.exists()) {
+                    alert("Dieser Name gehört einem registrierten Stammgast. Bitte klicke auf das Schloss (🔒), um dich einzuloggen, oder wähle einen anderen Namen.");
+                    return;
+                }
+
+                executeSend(enteredName, enteredMsg, triggerShadowBan, false, false);
+            });
         }
     }
 
