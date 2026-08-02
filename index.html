@@ -88,9 +88,8 @@
             box-shadow: 0 0 4px rgba(255, 165, 0, 0.4);
         }
 
-        /* Admin-Aktionsbuttons im Chat */
         .admin-actions {
-            display: none; /* Standardmäßig unsichtbar */
+            display: none;
             gap: 8px;
             margin-left: 10px;
         }
@@ -106,9 +105,8 @@
         }
         .admin-btn:hover { background: rgba(255,255,255,0.2); }
 
-        /* Das Admin-Kontrollzentrum über der Eingabeleiste */
         #admin-panel {
-            display: none; /* Standardmäßig unsichtbar */
+            display: none;
             background: #ffa500;
             color: #001529;
             padding: 6px 12px;
@@ -116,7 +114,6 @@
             font-weight: bold;
             text-transform: uppercase;
             letter-spacing: 0.5px;
-            border-bottom: 2px solid #001529;
             justify-content: space-between;
             align-items: center;
         }
@@ -147,6 +144,7 @@
         }
 
         #userName { width: 85px; flex-shrink: 0; }
+        #userPass { width: 85px; flex-shrink: 0; display: none; }
         #userMsg { flex: 1; min-width: 0; }
         .hp-field { display: none !important; }
 
@@ -154,10 +152,18 @@
             background: #001529; 
             color: #fff; 
             border: none;
-            padding: 0 15px; 
+            padding: 0 12px; 
             height: 40px;
             cursor: pointer; 
             font-weight: bold;
+        }
+
+        #loginToggleBtn {
+            background: transparent;
+            color: #001529;
+            border: 1px solid #001529;
+            font-size: 14px;
+            padding: 0 8px;
         }
 
         #chat::-webkit-scrollbar { width: 6px; }
@@ -170,7 +176,6 @@
 <div id="chat-container">
     <div id="chat"></div>
     
-    <!-- Unsichtbares Admin-Kontrollzentrum -->
     <div id="admin-panel">
         <span>🔒 Moderations-Modus aktiv</span>
         <button onclick="clearAllMessages()" style="background:#001529; color:#fff; font-size:10px; height:24px; padding:0 8px;">Kompletten Chat leeren</button>
@@ -179,7 +184,9 @@
     <div id="input-area">
         <div class="input-row">
             <input type="text" id="botCheck" class="hp-field" tabindex="-1" autocomplete="off">
+            <button id="loginToggleBtn" onclick="toggleLoginMode()" title="Login für Stammnutzer & Hosts">🔒</button>
             <input type="text" id="userName" placeholder="Name">
+            <input type="password" id="userPass" placeholder="Passwort">
             <input type="text" id="userMsg" placeholder="Nachricht..." onkeypress="if(event.key === 'Enter') send()">
             <button id="sendBtn" onclick="send()">Senden</button>
         </div>
@@ -202,7 +209,8 @@
     
     let isLocked = false;
     let lastSentMessage = "";
-    let amILoggedInAsAdmin = false; // Status für lokale Admin-Ansicht
+    let amILoggedInAsAdmin = false;
+    let isLoginModeActive = false;
 
     if (!sessionStorage.getItem('chat_user_sid')) {
         sessionStorage.setItem('chat_user_sid', 'sid_' + Math.random().toString(36).substr(2, 9));
@@ -212,17 +220,30 @@
     const blacklist = [
         "arsch", "idiot", "wichser", "schlampe", "hure", "bastard", "depp", "missgeburt", "pisser", "fotze", "nazi", "hitler", "neger", "penis", "vagina", "fick",
         "hurensohn", "arschloch", "wixxer", "schwachkopf", "vollidiot", "spast", "spasti", "missgeburt", "nutte", "fotzenknecht", "pissnelke", "sauhund", "schweinehund",
-        "wichsgesicht", "kackbratze", "pissgesicht", "vollpfosten", "vollspast", "versager", "verpisst", "lutsch", "lutscher", "huren", "drecksau", "schandmaul", "kiki", "hyatt", 
-        "kikki", "kicki", "kickichen", "kikkie", "kickie", "fotze", "votze", "schwuchtel", "kanake", "Kanacke",
-        "schwule sau", "schwulesau", "fette sau", "Heil Hitler", "Alice Weidel", "Cruppala", "Björm Höcke", "Höcke", "woke", "links grün versifft", "links grün", "linksgrün",
-        "kanake", "fotzkopf", "pimmel", "pimmelberger", "homosau", "Schwanzlutscher", "alle krank", "afd", "blaue welle", "pädo", "pädophile", "pädophiele", "pimmellutscher", "saftsack"
+        "wichsgesicht", "kackbratze", "pissgesicht", "vollpfosten", "vollspast", "versager", "verpisst", "lutsch", "lutscher", "huren", "drecksau", "schandmaul",
+        "kanake", "fotzkopf", "pimmel", "pimmelberger", "hyat", "hyatt", "kiki", "kiki oder kartsen", "kikioderkarsten", "afd", "petry", "pimmellutscher", "saftsack"
     ]; 
 
     const protectedNames = [
-        "maurice", "yvonne", "trl", "talknow", "total reality live", "totalrealitylive", "britta", "britta_tn", "britta_talknow", "britta_talk!now?", 
-        "milan", "kiki", "hitler", "adolf hitler", "alice weidel", "björn höcke", "bjoern hoecke", "pride", "csd", "cologne pride", "frauke petry"
+        "maurice", "yvonne", "trl", "talknow", "total reality live", "totalrealitylive",
+        "milan", "kiki", "hitler", "adolf hitler", "alice weidel", "björn höcke", "bjoern hoecke", "frauke petry"
     ];
-    const secretCode = "_1104";
+
+    function toggleLoginMode() {
+        isLoginModeActive = !isLoginModeActive;
+        const passInput = document.getElementById("userPass");
+        const toggleBtn = document.getElementById("loginToggleBtn");
+        
+        if (isLoginModeActive) {
+            passInput.style.display = "block";
+            toggleBtn.style.background = "#001529";
+            toggleBtn.style.color = "#ffa500";
+        } else {
+            passInput.style.display = "none";
+            toggleBtn.style.background = "transparent";
+            toggleBtn.style.color = "#001529";
+        }
+    }
 
     function containsBadWords(text) {
         const lowerText = text.toLowerCase();
@@ -242,19 +263,15 @@
         chat.scrollTop = chat.scrollHeight;
     }
 
-    // --- ADMIN FUNKTIONEN ---
     function deleteMessage(msgId) {
-        if(confirm("Möchtest du diese Nachricht wirklich für alle löschen?")) {
+        if(confirm("Nachricht wirklich löschen?")) {
             db.ref("messages/" + msgId).remove();
         }
     }
 
     function banUser(userSid, userName) {
-        if(confirm(`Möchtest du den Nutzer "${userName}" dauerhaft sperren? Alle seine Nachrichten verschwinden.`)) {
-            // Füge die SID zur globalen Blacklist in Firebase hinzu
+        if(confirm(`Nutzer "${userName}" dauerhaft sperren?`)) {
             db.ref("banned_sids/" + userSid).set(true);
-            
-            // Lösche direkt alle existierenden Nachrichten dieser SID
             db.ref("messages").once("value", (snapshot) => {
                 if(snapshot.exists()) {
                     snapshot.forEach((child) => {
@@ -268,12 +285,11 @@
     }
 
     function clearAllMessages() {
-        if(confirm("Möchtest du wirklich den KOMPLETTEN Chatverlauf für alle leeren?")) {
+        if(confirm("KOMPLETTEN Chatverlauf leeren?")) {
             db.ref("messages").remove();
         }
     }
 
-    // Prüfe im Hintergrund live, ob die eigene Session-ID gesperrt wurde
     db.ref("banned_sids/" + mySessionId).on("value", (snapshot) => {
         if (snapshot.exists()) {
             isLocked = true;
@@ -286,10 +302,12 @@
     function send() {
         if (isLocked) return;
         const nameInput = document.getElementById('userName');
+        const passInput = document.getElementById('userPass');
         const msgInput = document.getElementById('userMsg');
         const sendBtn = document.getElementById('sendBtn');
         
         let enteredName = nameInput.value.trim();
+        const enteredPass = passInput.value.trim();
         const enteredMsg = msgInput.value.trim();
 
         if (enteredName !== "" && enteredMsg !== "") {
@@ -304,78 +322,71 @@
                 triggerShadowBan = true;
             }
 
-            let isVerifiedHost = false;
-            let checkName = enteredName.toLowerCase();
+            const cleanedEnteredCheck = cleanName(enteredName);
+            const isProtected = protectedNames.some(pName => cleanName(pName) === cleanedEnteredCheck);
 
-            if (checkName.endsWith(secretCode)) {
-                const baseName = enteredName.substring(0, enteredName.length - secretCode.length);
-                const cleanBase = baseName.trim().toLowerCase();
-
-                if (protectedNames.includes(cleanBase)) {
-                    isVerifiedHost = true;
-                    enteredName = baseName.trim(); 
-                    checkName = cleanBase;
-                    
-                    // Admin-Modus lokal freischalten
-                    amILoggedInAsAdmin = true;
-                    document.getElementById("admin-panel").style.display = "flex";
-                }
-            } else {
-                const cleanedEnteredCheck = cleanName(enteredName);
-                const isBlockedVariant = protectedNames.some(pName => {
-                    const cleanedPName = cleanName(pName);
-                    return cleanedEnteredCheck === cleanedPName || 
-                           (cleanedEnteredCheck.startsWith(cleanedPName) && cleanedPName.length >= 3);
-                });
-
-                if (isBlockedVariant) {
-                    alert("Dieser Name ist geschützt und kann von regulären Nutzern nicht verwendet werden.");
-                    return;
-                }
+            // Prüfe, ob es ein geschützter Name ohne Passwort-Login ist
+            if (isProtected && (!isLoginModeActive || enteredPass === "")) {
+                alert("Dieser Name ist geschützt. Bitte klicke auf das Schloss-Symbol (🔒) und gib dein Passwort ein.");
+                return;
             }
 
             isLocked = true;
             sendBtn.style.opacity = "0.5";
 
-            const cleanedEntered = cleanName(enteredName);
+            // Wenn Passwort eingegeben wurde, prüfe gegen die Firebase-Benutzerdatenbank (`users`)
+            if (isLoginModeActive && enteredPass !== "") {
+                const userKey = cleanedEnteredCheck;
+                
+                db.ref("users/" + userKey).once("value", (userSnap) => {
+                    if (!userSnap.exists()) {
+                        alert("Benutzername nicht registriert oder falsches Passwort.");
+                        isLocked = false;
+                        sendBtn.style.opacity = "1";
+                        return;
+                    }
 
-            db.ref("messages").limitToLast(50).once("value", (snapshot) => {
-                let nameTakenByOther = false;
+                    const userData = userSnap.val();
+                    if (userData.password !== enteredPass) {
+                        alert("Falsches Passwort!");
+                        isLocked = false;
+                        sendBtn.style.opacity = "1";
+                        return;
+                    }
 
-                if (snapshot.exists()) {
-                    snapshot.forEach((childSnapshot) => {
-                        const msgData = childSnapshot.val();
-                        if (msgData && msgData.sid && msgData.name && !msgData.shadowBanned && msgData.sid !== mySessionId) {
-                            const cleanedExisting = cleanName(msgData.name);
-                            if (cleanedExisting === cleanedEntered || 
-                                (cleanedEntered.startsWith(cleanedExisting) && cleanedExisting.length >= 3)) {
-                                nameTakenByOther = true;
-                            }
-                        }
-                    });
-                }
+                    // Erfolgreicher Login
+                    let isHostRole = (userData.role === "admin" || userData.role === "host");
+                    if (isHostRole) {
+                        amILoggedInAsAdmin = true;
+                        document.getElementById("admin-panel").style.display = "flex";
+                    }
 
-                if (nameTakenByOther && !triggerShadowBan && !isVerifiedHost) {
-                    alert("Dieser Name oder eine zu ähnliche Variante wird aktuell bereits verwendet. Bitte wähle einen eindeutigen Namen.");
-                    isLocked = false;
-                    sendBtn.style.opacity = "1";
-                    return;
-                }
-
-                db.ref("messages").push().set({
-                    name: enteredName,
-                    text: enteredMsg,
-                    time: Date.now(),
-                    sid: mySessionId,
-                    shadowBanned: triggerShadowBan,
-                    isHost: isVerifiedHost
+                    pushMessage(enteredName, enteredMsg, triggerShadowBan, isHostRole, true);
                 });
-
-                lastSentMessage = enteredMsg;
-                msgInput.value = "";
-                setTimeout(() => { isLocked = false; sendBtn.style.opacity = "1"; }, 3000);
-            });
+            } else {
+                // Anonymer Gast-Sende-Vorgang
+                pushMessage(enteredName, enteredMsg, triggerShadowBan, false, false);
+            }
         }
+    }
+
+    function pushMessage(name, text, shadowBanned, isHost, isVerified) {
+        const sendBtn = document.getElementById('sendBtn');
+        const msgInput = document.getElementById('userMsg');
+
+        db.ref("messages").push().set({
+            name: name,
+            text: text,
+            time: Date.now(),
+            sid: mySessionId,
+            shadowBanned: shadowBanned,
+            isHost: isHost,
+            isVerified: isVerified
+        });
+
+        lastSentMessage = text;
+        msgInput.value = "";
+        setTimeout(() => { isLocked = false; sendBtn.style.opacity = "1"; }, 3000);
     }
 
     db.ref("messages").limitToLast(50).on("value", (snapshot) => {
@@ -385,18 +396,6 @@
         if (!snapshot.exists()) {
             return;
         }
-
-        const firstOwners = {};
-
-        snapshot.forEach((childSnapshot) => {
-            const data = childSnapshot.val();
-            if (data && data.name && data.sid && !data.shadowBanned) {
-                const cleaned = cleanName(data.name);
-                if (!firstOwners[cleaned]) {
-                    firstOwners[cleaned] = data.sid;
-                }
-            }
-        });
 
         snapshot.forEach((childSnapshot) => {
             const msgId = childSnapshot.key;
@@ -408,21 +407,18 @@
                     return; 
                 }
 
-                const cleaned = cleanName(data.name);
                 const div = document.createElement('div');
                 div.className = 'msg';
                 
                 let badgeHTML = '';
                 if (data.isHost) {
                     badgeHTML = '<span class="host-badge">Host</span>';
-                } else if (!data.shadowBanned && firstOwners[cleaned] === data.sid) {
+                } else if (data.isVerified) {
                     badgeHTML = '<span class="verify-badge">✔</span>';
                 }
                 
-                // Extra-Info für den Admin, falls eine Nachricht im Schattengefängnis gefangen ist
                 let shadowHint = (data.shadowBanned && amILoggedInAsAdmin) ? ' <i style="color:red; font-size:11px;">(Shadowbanned)</i>' : '';
                 
-                // Struktureller Aufbau der Nachricht
                 div.innerHTML = `
                     <div class="msg-content">
                         <b>${data.name}${badgeHTML}${shadowHint}</b> <span style="color:#fff;">${data.text}</span>
@@ -435,7 +431,6 @@
                 
                 chat.appendChild(div);
 
-                // Wenn du als Admin eingeloggt bist, schalte die Lösch-Buttons neben den Nachrichten live frei
                 if (amILoggedInAsAdmin) {
                     document.getElementById(`actions-${msgId}`).style.display = 'flex';
                 }
