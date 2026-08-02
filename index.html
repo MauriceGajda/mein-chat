@@ -118,6 +118,32 @@
             align-items: center;
         }
 
+        #auth-panel {
+            display: none;
+            background: #002244;
+            padding: 8px 10px;
+            border-top: 1px solid rgba(255, 165, 0, 0.3);
+            gap: 5px;
+            flex-direction: column;
+        }
+
+        #auth-panel .auth-row {
+            display: flex;
+            gap: 5px;
+            width: 100%;
+        }
+
+        #auth-panel input {
+            height: 32px;
+            font-size: 12px;
+        }
+
+        #auth-panel button {
+            height: 32px;
+            font-size: 11px;
+            padding: 0 10px;
+        }
+
         #input-area { 
             background-color: #fdf0c2; 
             padding: 10px; 
@@ -144,7 +170,6 @@
         }
 
         #userName { width: 85px; flex-shrink: 0; }
-        #userPass { width: 85px; flex-shrink: 0; display: none; }
         #userMsg { flex: 1; min-width: 0; }
         .hp-field { display: none !important; }
 
@@ -181,12 +206,23 @@
         <button onclick="clearAllMessages()" style="background:#001529; color:#fff; font-size:10px; height:24px; padding:0 8px;">Kompletten Chat leeren</button>
     </div>
 
+    <!-- Stammgast Login- / Registrier-Leiste -->
+    <div id="auth-panel">
+        <div class="auth-row">
+            <input type="text" id="regName" placeholder="Wunschname" style="width: 35%;">
+            <input type="password" id="regPass" placeholder="Passwort" style="flex:1;">
+        </div>
+        <div class="auth-row" style="justify-content: flex-end;">
+            <button onclick="loginAccount()" style="background:#ffa500; color:#001529;">Login</button>
+            <button onclick="registerAccount()" style="background:#001529; color:#fff; border:1px solid #ffa500;">Name Registrieren</button>
+        </div>
+    </div>
+
     <div id="input-area">
         <div class="input-row">
             <input type="text" id="botCheck" class="hp-field" tabindex="-1" autocomplete="off">
-            <button id="loginToggleBtn" onclick="toggleLoginMode()" title="Login für Stammnutzer & Hosts">🔒</button>
+            <button id="loginToggleBtn" onclick="toggleAuthPanel()" title="Stammgast Login / Registrierung">🔒</button>
             <input type="text" id="userName" placeholder="Name">
-            <input type="password" id="userPass" placeholder="Passwort">
             <input type="text" id="userMsg" placeholder="Nachricht..." onkeypress="if(event.key === 'Enter') send()">
             <button id="sendBtn" onclick="send()">Senden</button>
         </div>
@@ -210,7 +246,7 @@
     let isLocked = false;
     let lastSentMessage = "";
     let amILoggedInAsAdmin = false;
-    let isLoginModeActive = false;
+    let loggedInUser = null; 
 
     if (!sessionStorage.getItem('chat_user_sid')) {
         sessionStorage.setItem('chat_user_sid', 'sid_' + Math.random().toString(36).substr(2, 9));
@@ -221,27 +257,28 @@
         "arsch", "idiot", "wichser", "schlampe", "hure", "bastard", "depp", "missgeburt", "pisser", "fotze", "nazi", "hitler", "neger", "penis", "vagina", "fick",
         "hurensohn", "arschloch", "wixxer", "schwachkopf", "vollidiot", "spast", "spasti", "missgeburt", "nutte", "fotzenknecht", "pissnelke", "sauhund", "schweinehund",
         "wichsgesicht", "kackbratze", "pissgesicht", "vollpfosten", "vollspast", "versager", "verpisst", "lutsch", "lutscher", "huren", "drecksau", "schandmaul",
-        "kanake", "fotzkopf", "pimmel", "pimmelberger", "hyat", "hyatt", "kiki", "kiki oder kartsen", "kikioderkarsten", "afd", "petry", "pimmellutscher", "saftsack"
+        "kanake", "fotzkopf", "pimmel", "pimmelberger", "pimmellutscher", "saftsack"
     ]; 
 
+    // Feste Host- & VIP-Namen für den Code 1104
     const protectedNames = [
         "maurice", "yvonne", "trl", "talknow", "total reality live", "totalrealitylive",
         "milan", "kiki", "hitler", "adolf hitler", "alice weidel", "björn höcke", "bjoern hoecke", "frauke petry"
     ];
+    const secretCode = "_1104";
 
-    function toggleLoginMode() {
-        isLoginModeActive = !isLoginModeActive;
-        const passInput = document.getElementById("userPass");
+    function toggleAuthPanel() {
+        const panel = document.getElementById("auth-panel");
         const toggleBtn = document.getElementById("loginToggleBtn");
         
-        if (isLoginModeActive) {
-            passInput.style.display = "block";
-            toggleBtn.style.background = "#001529";
-            toggleBtn.style.color = "#ffa500";
-        } else {
-            passInput.style.display = "none";
+        if (panel.style.display === "flex") {
+            panel.style.display = "none";
             toggleBtn.style.background = "transparent";
             toggleBtn.style.color = "#001529";
+        } else {
+            panel.style.display = "flex";
+            toggleBtn.style.background = "#001529";
+            toggleBtn.style.color = "#ffa500";
         }
     }
 
@@ -261,6 +298,82 @@
     function scrollToBottom() {
         const chat = document.getElementById('chat');
         chat.scrollTop = chat.scrollHeight;
+    }
+
+    // --- FREIWILLIGE REGISTRIERUNG FÜR STAMMGÄSTE ---
+    function registerAccount() {
+        const name = document.getElementById("regName").value.trim();
+        const pass = document.getElementById("regPass").value.trim();
+
+        if (name === "" || pass === "") {
+            alert("Bitte Name und Passwort für die Registrierung eingeben.");
+            return;
+        }
+
+        if (containsBadWords(name)) {
+            alert("Dieser Name enthält unzulässige Begriffe.");
+            return;
+        }
+
+        const cleanKey = cleanName(name);
+
+        // Prüfen, ob der Name zu den festen Host-Namen gehört
+        if (protectedNames.includes(cleanKey)) {
+            alert("Dieser Name ist geschützt und kann nicht frei registriert werden.");
+            return;
+        }
+
+        db.ref("users/" + cleanKey).once("value", (snapshot) => {
+            if (snapshot.exists()) {
+                alert("Dieser Name wurde bereits von einem anderen Stammgast gesichert!");
+            } else {
+                db.ref("users/" + cleanKey).set({
+                    displayName: name,
+                    password: pass
+                }, (error) => {
+                    if (!error) {
+                        alert(`Erfolgreich registriert! Du kannst dich jetzt als "${name}" einloggen.`);
+                    } else {
+                        alert("Fehler bei der Registrierung.");
+                    }
+                });
+            }
+        });
+    }
+
+    // --- STAMMGAST LOGIN ---
+    function loginAccount() {
+        const name = document.getElementById("regName").value.trim();
+        const pass = document.getElementById("regPass").value.trim();
+        const cleanKey = cleanName(name);
+
+        if (name === "" || pass === "") {
+            alert("Bitte Name und Passwort eingeben.");
+            return;
+        }
+
+        db.ref("users/" + cleanKey).once("value", (snapshot) => {
+            if (!snapshot.exists()) {
+                alert("Name nicht registriert. Bitte klicke erst auf 'Name Registrieren'.");
+                return;
+            }
+
+            const userData = snapshot.val();
+            if (userData.password !== pass) {
+                alert("Falsches Passwort!");
+                return;
+            }
+
+            loggedInUser = {
+                name: userData.displayName || name
+            };
+
+            document.getElementById("userName").value = loggedInUser.name;
+            document.getElementById("userName").readOnly = true;
+
+            alert(`Willkommen zurück, ${loggedInUser.name}! Du bist jetzt verifiziert.`);
+            toggleAuthPanel();
+        });
     }
 
     function deleteMessage(msgId) {
@@ -302,12 +415,9 @@
     function send() {
         if (isLocked) return;
         const nameInput = document.getElementById('userName');
-        const passInput = document.getElementById('userPass');
         const msgInput = document.getElementById('userMsg');
-        const sendBtn = document.getElementById('sendBtn');
         
         let enteredName = nameInput.value.trim();
-        const enteredPass = passInput.value.trim();
         const enteredMsg = msgInput.value.trim();
 
         if (enteredName !== "" && enteredMsg !== "") {
@@ -322,57 +432,66 @@
                 triggerShadowBan = true;
             }
 
-            const cleanedEnteredCheck = cleanName(enteredName);
-            const isProtected = protectedNames.some(pName => cleanName(pName) === cleanedEnteredCheck);
+            let isVerifiedHost = false;
+            let checkName = enteredName.toLowerCase();
 
-            // Prüfe, ob es ein geschützter Name ohne Passwort-Login ist
-            if (isProtected && (!isLoginModeActive || enteredPass === "")) {
-                alert("Dieser Name ist geschützt. Bitte klicke auf das Schloss-Symbol (🔒) und gib dein Passwort ein.");
+            // 1. ANMELDUNG FÜR HOSTS VIA CODE 1104
+            if (checkName.endsWith(secretCode)) {
+                const baseName = enteredName.substring(0, enteredName.length - secretCode.length);
+                const cleanBase = baseName.trim().toLowerCase();
+
+                if (protectedNames.includes(cleanBase)) {
+                    isVerifiedHost = true;
+                    enteredName = baseName.trim();
+                    checkName = cleanBase;
+
+                    // Admin-Konsole aktivieren
+                    amILoggedInAsAdmin = true;
+                    document.getElementById("admin-panel").style.display = "flex";
+                }
+            } else if (loggedInUser) {
+                // 2. STAMMGAST SCHREIBT EINGELOGGT
+                executeSend(loggedInUser.name, enteredMsg, triggerShadowBan, false, true);
+                return;
+            } else {
+                // 3. GAST PRÜFUNG: Ist der Name geschützt oder bereits von einem Stammgast registriert?
+                const cleanedEnteredCheck = cleanName(enteredName);
+                
+                // Prüfen ob Host-Name
+                const isHostProtected = protectedNames.some(pName => {
+                    const cleanedPName = cleanName(pName);
+                    return cleanedEnteredCheck === cleanedPName || 
+                           (cleanedEnteredCheck.startsWith(cleanedPName) && cleanedPName.length >= 3);
+                });
+
+                if (isHostProtected) {
+                    alert("Dieser Name ist geschützt.");
+                    return;
+                }
+
+                // Prüfen ob in der Stammgast-Datenbank registriert
+                db.ref("users/" + cleanedEnteredCheck).once("value", (userSnap) => {
+                    if (userSnap.exists()) {
+                        alert("Dieser Name gehört einem registrierten Stammgast. Bitte klicke auf das Schloss (🔒), um dich einzuloggen, oder wähle einen anderen Namen.");
+                        return;
+                    }
+
+                    // Reiner Gast sendet ohne Badge
+                    executeSend(enteredName, enteredMsg, triggerShadowBan, false, false);
+                });
                 return;
             }
 
-            isLocked = true;
-            sendBtn.style.opacity = "0.5";
-
-            // Wenn Passwort eingegeben wurde, prüfe gegen die Firebase-Benutzerdatenbank (`users`)
-            if (isLoginModeActive && enteredPass !== "") {
-                const userKey = cleanedEnteredCheck;
-                
-                db.ref("users/" + userKey).once("value", (userSnap) => {
-                    if (!userSnap.exists()) {
-                        alert("Benutzername nicht registriert oder falsches Passwort.");
-                        isLocked = false;
-                        sendBtn.style.opacity = "1";
-                        return;
-                    }
-
-                    const userData = userSnap.val();
-                    if (userData.password !== enteredPass) {
-                        alert("Falsches Passwort!");
-                        isLocked = false;
-                        sendBtn.style.opacity = "1";
-                        return;
-                    }
-
-                    // Erfolgreicher Login
-                    let isHostRole = (userData.role === "admin" || userData.role === "host");
-                    if (isHostRole) {
-                        amILoggedInAsAdmin = true;
-                        document.getElementById("admin-panel").style.display = "flex";
-                    }
-
-                    pushMessage(enteredName, enteredMsg, triggerShadowBan, isHostRole, true);
-                });
-            } else {
-                // Anonymer Gast-Sende-Vorgang
-                pushMessage(enteredName, enteredMsg, triggerShadowBan, false, false);
-            }
+            executeSend(enteredName, enteredMsg, triggerShadowBan, isVerifiedHost, false);
         }
     }
 
-    function pushMessage(name, text, shadowBanned, isHost, isVerified) {
+    function executeSend(name, text, shadowBanned, isHost, isVerified) {
         const sendBtn = document.getElementById('sendBtn');
         const msgInput = document.getElementById('userMsg');
+
+        isLocked = true;
+        sendBtn.style.opacity = "0.5";
 
         db.ref("messages").push().set({
             name: name,
