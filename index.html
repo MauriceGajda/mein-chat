@@ -221,7 +221,7 @@
     <div id="input-area">
         <div class="input-row">
             <input type="text" id="botCheck" class="hp-field" tabindex="-1" autocomplete="off">
-            <button id="loginToggleBtn" onclick="toggleAuthPanel()" title="Stammgast Login / Registrierung">🔒</button>
+            <button id="loginToggleBtn" onclick="toggleAuthPanel()" title="Login / Registrierung">🔒</button>
             <input type="text" id="userName" placeholder="Name">
             <input type="text" id="userMsg" placeholder="Nachricht..." onkeypress="if(event.key === 'Enter') send()">
             <button id="sendBtn" onclick="send()">Senden</button>
@@ -284,7 +284,7 @@
 
     function containsBadWords(text) {
         const lowerText = text.toLowerCase();
-        return blacklist.some(word => lowerText.includes(word));
+        return blacklist.some(word => lowerText.includes(word.toLowerCase()));
     }
 
     function cleanName(name) {
@@ -317,13 +317,13 @@
         const cleanKey = cleanName(name);
 
         if (protectedNames.includes(cleanKey)) {
-            alert("Dieser Name ist geschützt und kann nicht frei registriert werden.");
+            alert("Dieser Name ist für das Team reserviert und kann nicht frei registriert werden.");
             return;
         }
 
         db.ref("users/" + cleanKey).once("value", (snapshot) => {
             if (snapshot.exists()) {
-                alert("Dieser Name wurde bereits von einem anderen Stammgast gesichert!");
+                alert("Dieser Name wurde bereits von einem anderen Nutzer registriert!");
             } else {
                 db.ref("users/" + cleanKey).set({
                     displayName: name,
@@ -351,7 +351,7 @@
 
         db.ref("users/" + cleanKey).once("value", (snapshot) => {
             if (!snapshot.exists()) {
-                alert("Name nicht registriert. Bitte klicke erst auf 'Name Registrieren'.");
+                alert("Name nicht gefunden. Bitte klicke erst auf 'Name Registrieren'.");
                 return;
             }
 
@@ -368,7 +368,7 @@
             document.getElementById("userName").value = loggedInUser.name;
             document.getElementById("userName").readOnly = true;
 
-            alert(`Willkommen zurück, ${loggedInUser.name}! Du bist jetzt verifiziert.`);
+            alert(`Willkommen zurück, ${loggedInUser.name}! Du bist jetzt eingeloggt.`);
             toggleAuthPanel();
         });
     }
@@ -431,7 +431,7 @@
 
             let checkName = enteredName.toLowerCase();
 
-            // PRIORIÄT 1: PRÜFUNG AUF HOST-CODE (_1104)
+            // OPTION 1: ANMELDUNG FÜR TEAM / HOSTS VIA CODE (_1104)
             if (checkName.endsWith(secretCode)) {
                 const baseName = enteredName.substring(0, enteredName.length - secretCode.length);
                 const cleanBase = baseName.trim().toLowerCase();
@@ -440,40 +440,19 @@
                     amILoggedInAsAdmin = true;
                     document.getElementById("admin-panel").style.display = "flex";
                     
-                    // Schickt die Nachricht sofort als verifizierter Host ab
                     executeSend(baseName.trim(), enteredMsg, triggerShadowBan, true, false);
                     return;
                 }
             }
 
-            // PRIORITÄT 2: EINGELOGGTER STAMMGAST
+            // OPTION 2: ANMELDUNG FÜR EINGELOGGTE REGISTRIERTE USER
             if (loggedInUser) {
                 executeSend(loggedInUser.name, enteredMsg, triggerShadowBan, false, true);
                 return;
             }
 
-            // PRIORITÄT 3: GAST-PRÜFUNG
-            const cleanedEnteredCheck = cleanName(enteredName);
-            
-            const isHostProtected = protectedNames.some(pName => {
-                const cleanedPName = cleanName(pName);
-                return cleanedEnteredCheck === cleanedPName || 
-                       (cleanedEnteredCheck.startsWith(cleanedPName) && cleanedPName.length >= 3);
-            });
-
-            if (isHostProtected) {
-                alert("Dieser Name ist geschützt.");
-                return;
-            }
-
-            db.ref("users/" + cleanedEnteredCheck).once("value", (userSnap) => {
-                if (userSnap.exists()) {
-                    alert("Dieser Name gehört einem registrierten Stammgast. Bitte klicke auf das Schloss (🔒), um dich einzuloggen, oder wähle einen anderen Namen.");
-                    return;
-                }
-
-                executeSend(enteredName, enteredMsg, triggerShadowBan, false, false);
-            });
+            // OPTION 3: UNREGISTRIERTE GÄSTE WERDEN KOMPLETT BLOCKIERT
+            alert("Ein unangemeldeter Chat-Beitrag ist nicht möglich. Bitte klicke auf das Schloss (🔒), um dich zu registrieren oder einzuloggen.");
         }
     }
 
